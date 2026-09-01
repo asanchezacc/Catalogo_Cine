@@ -1,3 +1,9 @@
+"""
+Módulo de vista
+Funciones para imprimir mensajes con color y mostrar tablas de datos
+(peliculas, clientes, empleados, tickets, etc.) en pantalla.
+"""
+
 # CONFIGURACION DE COLORES ANSI
 RESET = "\033[0m" # resetea todo el formato
 BOLD = "\033[1m" # texto en negrita
@@ -33,38 +39,52 @@ def imprimir_advertencia(texto):
     # advertencias en amarillo
     imprimir_mensaje(f"ADVERTENCIA: {texto}", AMARILLO)
 
-# FUNCION PRINCIPAL: MOSTRAR CATALOGO EN TABLA
-def mostrar_catalogo(catalogo, con_encabezado=True):
-    if not catalogo:
-        imprimir_advertencia("El catalogo esta vacio. No hay nada que mostrar.")
+# FUNCIONES LAMBDA PARA DAR FORMATO A VALORES
+formatear_precio = lambda p: f"${p:.2f}"
+formatear_estado = lambda activo: "Activo" if activo else "Inactivo"
+formatear_disponibilidad = lambda disponible: "Si" if disponible else "No"
+
+# FUNCION PARA MOSTRAR CUALQUIER TABLA DE DATOS
+def mostrar_tabla(datos, columnas, con_encabezado=True):
+    """
+    Muestra en pantalla una lista de diccionarios como una tabla
+    """
+    if not datos:
+        imprimir_advertencia("La lista esta vacia. No hay nada que mostrar.")
         return
 
-    columnas_base = ["ID", "Titulo", "Genero", "Duracion"]
-    encabezados = [col.upper() for col in columnas_base]
-
     if con_encabezado:
-        print(f"{CYAN}{BOLD}", end="") # se activa los colores cyan y negrita
+        print(f"{CYAN}{BOLD}", end="")
+        for etiqueta, clave, ancho in columnas:
+            print(f"{etiqueta.upper():<{ancho}}", end=" ")
+        print()
+        print(f"{'-' * 60}{RESET}")
 
-        # imprimimoos los encabezados usando f-strings y alineacion
-        print(f"{encabezados[0]:<4} {encabezados[1]:<25} {encabezados[2]:<15}{encabezados[3]:<10}")
+    for fila in datos:
+        for etiqueta, clave, ancho in columnas:
+            valor = fila.get(clave, "")
+            print(f"{valor:<{ancho}}", end=" ")
+        print()
 
-        # imprimimos la matriz
-        print(f"{'-' * 60}{RESET}") # se resetea el color al terminar la linea
-
-    # recorremos la matriz
-    for pelicula in catalogo:
-        # pelicula es una lista: [id, titulo, genero, duracion]
-        print(f"{pelicula[0]:<4} {pelicula[1]:<25} {pelicula[2]:<15} {pelicula[3]:<10}")
+# FUNCION PARA MOSTRAR EL CATALOGO DE PELICULAS
+def mostrar_catalogo(peliculas, con_encabezado=True):
+    columnas = [
+        ("ID", "id", 4),
+        ("Titulo", "titulo", 25),
+        ("Genero", "genero", 15),
+        ("Duracion", "duracion", 10),
+        ("Precio", "precio", 10),
+    ]
+    mostrar_tabla(peliculas, columnas, con_encabezado)
 
 # BLOQUE DE EJECUCION
 if __name__ == "__main__":
-    # datos de prueba (matriz)
     peliculas = [
-        [1, "Spiderman Brand New Day", "Accion", 150],
-        [2, "La Odisea", "Drama", 90],
-        [3, "Supergirl", "Ciencia ficcion", 120],
-        [4, "Mortal Kombat II", "Accion", 100],
-        [5, "Maestros del Universo", "Aventura", 110]
+        {"id": 1, "titulo": "Spiderman Brand New Day", "genero": "Accion", "duracion": 150, "precio": 250},
+        {"id": 2, "titulo": "La Odisea", "genero": "Drama", "duracion": 90, "precio": 200},
+        {"id": 3, "titulo": "Supergirl", "genero": "Ciencia ficcion", "duracion": 120, "precio": 220},
+        {"id": 4, "titulo": "Mortal Kombat II", "genero": "Accion", "duracion": 100, "precio": 240},
+        {"id": 5, "titulo": "Maestros del Universo", "genero": "Aventura", "duracion": 110, "precio": 230},
     ]
 
     # Probando el encabezado
@@ -76,6 +96,19 @@ if __name__ == "__main__":
     imprimir_advertencia("Quedan pocos intentos")
 
     # Impresion de la tabla
-    print("\n--- MONSTRANDO CATALOGO DE PRUEBA ---")
+    print("\n--- MOSTRANDO CATALOGO DE PELICULAS ---")
     mostrar_catalogo(peliculas)
-    
+
+    # Lista de clientes
+    clientes = [
+        {"id": 1, "nombre": "Lary Choi", "email": "larychoi@mail.com", "telefono": "1122334455", "estado": True},
+        {"id": 2, "nombre": "Tómas Moran", "email": "tomasmoran@mail.com", "telefono": "1166778899", "estado": False},
+    ]
+    columnas_clientes = [
+        ("ID", "id", 4),
+        ("Nombre", "nombre", 20),
+        ("Email", "email", 25),
+        ("Telefono", "telefono", 15),
+    ]
+    print("\n--- MOSTRANDO CLIENTES ---")
+    mostrar_tabla(clientes, columnas_clientes)
