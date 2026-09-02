@@ -11,8 +11,7 @@ if __name__ == "__main__":
     imprimir_encabezado("Sistema de Cine - Test CRUD Películas")
     
     # Copiar datos iniciales
-    peliculas = peliculas_iniciales[:]
-    
+    peliculas = [p.copy() for p in peliculas_iniciales]
     # Mostrar estadísticas
     print(f"Total de películas: {contar_peliculas(peliculas)}")
     print(f"Promedio de duración: {promedio_duracion(peliculas):.1f} minutos\n")
