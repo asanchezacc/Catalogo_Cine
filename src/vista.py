@@ -77,6 +77,28 @@ def mostrar_catalogo(peliculas, con_encabezado=True):
     ]
     mostrar_tabla(peliculas, columnas, con_encabezado)
 
+# FUNCION PARA MOSTRAR UNA MATRIZ
+def mostrar_matriz(matriz, encabezados=None, ancho=20):
+    """Muestra en pantalla una matriz con formato de tabla."""
+    if not matriz:
+        imprimir_advertencia("La matriz está vacía. No hay nada que mostrar.")
+        return
+
+    if encabezados:
+        print(f"{CYAN}{BOLD}", end="")
+        for titulo in encabezados:
+            print(f"{titulo.upper():<{ancho}}", end="")
+        print()  # salto de línea
+        print(f"{CYAN}{'-' * (len(encabezados) * ancho)}{RESET}")
+
+    # Mostrar filas
+    for fila in matriz:
+        for valor in fila:
+            if isinstance(valor, bool):
+                valor = "Activo" if valor else "Inactivo"
+            print(f"{str(valor):<{ancho}}", end="")
+        print()
+
 # BLOQUE DE EJECUCION
 if __name__ == "__main__":
     peliculas = [
@@ -112,3 +134,12 @@ if __name__ == "__main__":
     ]
     print("\n--- MOSTRANDO CLIENTES ---")
     mostrar_tabla(clientes, columnas_clientes)
+
+    print("\n--- MOSTRANDO MATRIZ DE EMPLEADOS ---")
+    empleados = [
+        [1, "Alan Yerusalmi", "alan@email.com", True],
+        [2, "Julieta Spam", "julieta@email.com", False],
+    ]
+
+    encabezados_emp = ["ID", "Nombre", "Email", "Estado"]
+    mostrar_matriz(empleados, encabezados_emp)
