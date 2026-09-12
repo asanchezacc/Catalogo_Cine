@@ -4,6 +4,13 @@ ASIENTO_OCUPADO = 1
 
 
 def crear_sala(filas, columnas):
+
+    """
+    Recibe cantidades enteras de filas y columnas.
+    Devuelve una matriz nueva con todos los asientos libres.
+    Si alguna dimensión no es positiva, devuelve una lista vacía.
+    """
+
     if filas <= 0 or columnas <= 0:
         return []
     
@@ -22,6 +29,13 @@ def crear_sala(filas, columnas):
 
 
 def asiento_valido(sala, fila, columna):
+
+    """
+    Recibe una sala y los índices enteros de fila y columna.
+    Devuelve True si las coordenadas existen o False si no existen.
+    Los índices comienzan en cero.
+    """
+        
     if len(sala) == 0:
         return False
 
@@ -36,6 +50,13 @@ def asiento_valido(sala, fila, columna):
 
 
 def obtener_estado_asiento(sala, fila, columna):
+
+    """
+    Recibe una sala y los índices de un asiento.
+    Devuelve 0 si está libre, 1 si está ocupado
+    o None si las coordenadas son inválidas.
+    """
+
     if not asiento_valido(sala, fila, columna):
         return None
 
@@ -44,6 +65,13 @@ def obtener_estado_asiento(sala, fila, columna):
 
 
 def ocupar_asiento(sala, fila, columna):
+
+    """
+    Recibe una sala con estados 0 y 1 y los índices de un asiento.
+    Ocupa el asiento si está libre y devuelve True.
+    Si es inválido o ya está ocupado, devuelve False sin modificarlo.
+    """
+
     if not asiento_valido(sala, fila, columna):
         return False
 
@@ -56,6 +84,13 @@ def ocupar_asiento(sala, fila, columna):
 
 
 def liberar_asiento(sala, fila, columna):
+
+    """
+    Recibe una sala con estados 0 y 1 y los índices de un asiento.
+    Libera el asiento si está ocupado y devuelve True.
+    Si es inválido o ya está libre, devuelve False sin modificarlo.
+    """
+
     if not asiento_valido(sala, fila, columna):
         return False
 
@@ -68,6 +103,13 @@ def liberar_asiento(sala, fila, columna):
 
 
 def contar_asientos_libres(sala):
+
+    """
+    Recibe una matriz de asientos con estados 0 y 1.
+    Devuelve la cantidad de asientos cuyo estado es libre.
+    No modifica la sala.
+    """
+
     cantidad = 0
 
     for fila in sala:
