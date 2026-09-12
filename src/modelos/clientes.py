@@ -151,7 +151,7 @@ if __name__ == "__main__":
     alta_cliente("Juan Cruz Iocco", "juaniocco@email.com", "1144556677")
 
     print("\n--- Clientes Activos ---")
-    mostrar_clientes
+    mostrar_clientes()
 
     print("\n--- Ordenados por Nombre ---")
     ordenados = ordenar_clientes("nombre")
