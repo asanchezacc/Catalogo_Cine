@@ -39,12 +39,3 @@ def validar_contrasena(contrasena, longitud_minima=8):
             return False, mensaje
 
     return True, "Contraseña válida."
-
-
-if __name__ == "__main__":
-    print(validar_email("usuario@mail.com"))
-    print(validar_email("usuariomail.com"))
-    print(validar_telefono("11 2233-4455"))
-    print(validar_telefono("123"))
-    print(validar_contrasena("Python1$"))
-    print(validar_contrasena("python"))
