@@ -33,7 +33,7 @@ def obtener_pelicula(peliculas, id_pelicula):
 
 def listar_peliculas(peliculas):
     """Devuelve una copia de la lista completa de películas."""
-    return peliculas[:]  # Devolver una copia
+    return [pelicula.copy() for pelicula in peliculas]
 
 
 def actualizar_pelicula(peliculas, id_pelicula, titulo=None, genero=None, duracion=None, precio=None):
@@ -75,5 +75,8 @@ def promedio_duracion(peliculas):
     if len(peliculas) == 0:
         return 0
     
-    total = sum(p["duracion"] for p in peliculas)
+    total = 0
+    for pelicula in peliculas:
+        total += pelicula["duracion"]
+
     return total / len(peliculas)
