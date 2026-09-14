@@ -3,7 +3,7 @@ CRUD de clientes
 Funciones para validar emails, evitar duplicados, ordenar con lambda, vista para mensajes y tablas
 """
 import re
-from src.vista import (imprimir_error, imprimir_exito, imprimir_advertencia, mostrar_tabla, imprimir_mensaje, VERDE, RESET)
+from src.vista import imprimir_error, imprimir_exito, imprimir_advertencia, mostrar_tabla, imprimir_mensaje, VERDE, RESET
 
 clientes = [] # lista de diccionarios
 emails_activos = set() # conjunto de emails
