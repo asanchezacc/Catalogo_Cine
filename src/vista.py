@@ -102,11 +102,11 @@ def mostrar_matriz(matriz, encabezados=None, ancho=20):
 # BLOQUE DE EJECUCION
 if __name__ == "__main__":
     peliculas = [
-        {"id": 1, "titulo": "Spiderman Brand New Day", "genero": "Accion", "duracion": 150, "precio": 250},
-        {"id": 2, "titulo": "La Odisea", "genero": "Drama", "duracion": 90, "precio": 200},
-        {"id": 3, "titulo": "Supergirl", "genero": "Ciencia ficcion", "duracion": 120, "precio": 220},
-        {"id": 4, "titulo": "Mortal Kombat II", "genero": "Accion", "duracion": 100, "precio": 240},
-        {"id": 5, "titulo": "Maestros del Universo", "genero": "Aventura", "duracion": 110, "precio": 230},
+        {"id": 1, "titulo": "Spiderman Brand New Day", "genero": "Accion", "duracion": 150, "precio": 2500},
+        {"id": 2, "titulo": "La Odisea", "genero": "Drama", "duracion": 90, "precio": 2000},
+        {"id": 3, "titulo": "Supergirl", "genero": "Ciencia ficcion", "duracion": 120, "precio": 2200},
+        {"id": 4, "titulo": "Mortal Kombat II", "genero": "Accion", "duracion": 100, "precio": 2400},
+        {"id": 5, "titulo": "Maestros del Universo", "genero": "Aventura", "duracion": 110, "precio": 2300},
     ]
 
     # Probando el encabezado
