@@ -1,14 +1,23 @@
-from src.modelos.usuarios import buscar_usuario, agregar_usuario, eliminar_usuario, actualizar_usuario, iniciar_sesion, ver_historial
+from src.datos import datos_iniciales
+from src.modelos import usuarios, clientes
+from src.funciones import peliculas, asientos, tickets, estadisticas
 from src.validaciones import validar_contrasena
-from src.funciones.peliculas import listar_peliculas, obtener_pelicula
-from src.funciones.estadisticas import resumen_estadisticas
-from src.datos.datos_iniciales import peliculas_iniciales, usuarios_iniciales
-from src.modelos.clientes import alta_cliente, baja_cliente, buscar_cliente, mostrar_clientes
-from src.funciones.tickets import crear_ticket, cobrar, cancelar_ticket, obtener_ticket, tickets_registrados
 from src.vista import imprimir_encabezado, imprimir_exito, imprimir_error, mostrar_catalogo
 
-PELICULAS = [p.copy() for p in peliculas_iniciales]
-USUARIOS = [u.copy() for u in usuarios_iniciales]
+PELICULAS = []
+SALA = None
+
+
+def inicializar():
+    global SALA
+
+    for i, (titulo, genero, duracion, precio) in enumerate(datos_iniciales.PELICULAS_INICIALES, start=1):
+        peliculas.agregar_pelicula(PELICULAS, i, titulo, genero, duracion, precio)
+
+    datos_iniciales.cargar_clientes()
+    datos_iniciales.cargar_usuarios()
+
+    SALA = asientos.crear_sala(datos_iniciales.SALA_FILAS, datos_iniciales.SALA_COLUMNAS)
 
 
 def pedir_entero(mensaje):
@@ -16,16 +25,6 @@ def pedir_entero(mensaje):
     if not entrada.isdigit():
         return None
     return int(entrada)
-
-
-def obtener_id_empleado(usuario_actual):
-    # PROVISORIO: uso la posición en la lista como ID numérico, porque
-    # usuarios.py identifica empleados por nombre de usuario, no por ID,
-    # y tickets.py pide un empleado_id numérico. Avisarle al grupo.
-    for i, u in enumerate(USUARIOS):
-        if u["usuario"] == usuario_actual:
-            return i + 1
-    return None
 
 
 def mostrar_resultado(exito, mensaje):
@@ -40,14 +39,14 @@ def accion_ver_catalogo():
 
 
 def accion_ver_clientes():
-    mostrar_clientes()
+    clientes.mostrar_clientes()
 
 
 def accion_dar_alta_cliente():
     nombre = input("Nombre del cliente: ").strip()
     email = input("Email: ").strip()
     telefono = input("Teléfono: ").strip()
-    alta_cliente(nombre, email, telefono)
+    clientes.alta_cliente(nombre, email, telefono)
 
 
 def accion_dar_baja_cliente():
@@ -55,31 +54,52 @@ def accion_dar_baja_cliente():
     if id_cliente is None:
         imprimir_error("Ingresá un ID válido.")
         return
-    baja_cliente(id_cliente)
+    clientes.baja_cliente(id_cliente)
 
 
 def accion_ver_usuarios():
-    for u in USUARIOS:
-        print(f"{u['usuario']} - {u['rol']}")
+    for u in usuarios.usuarios:
+        print(f"{u['usuario']} - {u['nombre']} - {u['rol']}")
 
 
-def accion_agregar_usuario(usuario_actual):
-    nuevo_usuario = input("Nombre de usuario nuevo: ").strip()
+def accion_agregar_empleado():
+    nombre = input("Nombre completo: ").strip()
+    nuevo_usuario = input("Nombre de usuario: ").strip()
+
     if not nuevo_usuario:
         imprimir_error("El nombre de usuario no puede estar vacío.")
         return
+
     contrasena = input("Contraseña: ")
     es_valida, mensaje = validar_contrasena(contrasena)
     if not es_valida:
         imprimir_error(mensaje)
         return
-    exito, mensaje = agregar_usuario(usuario_actual, nuevo_usuario, contrasena, "empleado", USUARIOS)
-    mostrar_resultado(exito, mensaje)
+
+    exito, resultado = usuarios.alta_usuario(nombre, nuevo_usuario, contrasena, "empleado")
+    if exito:
+        imprimir_exito(f"Empleado '{nuevo_usuario}' agregado.")
+    else:
+        imprimir_error(resultado)
 
 
-def accion_eliminar_usuario(usuario_actual):
+def accion_eliminar_empleado(usuario_actual, rol_actual):
     usuario_a_borrar = input("Usuario a borrar: ").strip()
-    exito, mensaje = eliminar_usuario(usuario_actual, usuario_a_borrar, USUARIOS)
+    objetivo = usuarios.buscar_usuario(usuario_a_borrar)
+
+    if objetivo is None:
+        imprimir_error("Ese usuario no existe.")
+        return
+
+    if objetivo["rol"] == "administrador":
+        imprimir_error("No se puede borrar a un administrador.")
+        return
+
+    if rol_actual == "empleado" and usuario_a_borrar != usuario_actual:
+        imprimir_error("Como empleado, solo podés darte de baja a vos mismo.")
+        return
+
+    exito, mensaje = usuarios.baja_usuario(usuario_a_borrar)
     mostrar_resultado(exito, mensaje)
 
 
@@ -89,12 +109,12 @@ def accion_cambiar_contrasena(usuario_actual):
     if not es_valida:
         imprimir_error(mensaje)
         return
-    exito, mensaje = actualizar_usuario(usuario_actual, usuario_actual, nueva_contrasena, USUARIOS)
+    exito, mensaje = usuarios.actualizar_contrasena(usuario_actual, nueva_contrasena)
     mostrar_resultado(exito, mensaje)
 
 
 def accion_ver_historial():
-    entradas = ver_historial()
+    entradas = usuarios.ver_historial()
     if not entradas:
         print("No hay historial todavía.")
         return
@@ -103,7 +123,7 @@ def accion_ver_historial():
 
 
 def accion_ver_estadisticas():
-    resumen = resumen_estadisticas(tickets_registrados)
+    resumen = estadisticas.resumen_estadisticas(tickets.tickets_registrados)
     print(f"Precio promedio: ${resumen['promedio_precio']:.2f}")
     print(f"Tickets pendientes: {resumen['cantidad_pendientes']}")
     print(f"Tickets cobrados: {resumen['cantidad_cobrados']}")
@@ -112,29 +132,26 @@ def accion_ver_estadisticas():
     print(f"Total recaudado: ${resumen['total_recaudado']}")
 
 
-def accion_ver_tickets(id_empleado=None):
-    tickets = tickets_registrados
-    if id_empleado is not None:
-        tickets = list(filter(lambda t: t["empleado_id"] == id_empleado, tickets))
-    if not tickets:
+def accion_ver_tickets():
+    if not tickets.tickets_registrados:
         print("No hay tickets para mostrar.")
         return
     lineas = map(
         lambda t: f"#{t['id']} - cliente {t['cliente_id']} - película {t['pelicula_id']} - asiento {t['asiento']} - ${t['precio']} - {t['estado']}",
-        tickets,
+        tickets.tickets_registrados,
     )
     for linea in lineas:
         print(linea)
 
 
 def accion_crear_ticket(usuario_actual):
-    id_empleado = obtener_id_empleado(usuario_actual)
+    empleado = usuarios.buscar_usuario(usuario_actual)
 
     id_cliente = pedir_entero("ID del cliente: ")
     if id_cliente is None:
         imprimir_error("Ingresá un ID válido.")
         return
-    if buscar_cliente(id_cliente) is None:
+    if clientes.buscar_cliente(id_cliente) is None:
         imprimir_error("No existe un cliente con ese ID.")
         return
 
@@ -143,22 +160,28 @@ def accion_crear_ticket(usuario_actual):
     if id_pelicula is None:
         imprimir_error("Ingresá un ID válido.")
         return
-    pelicula = obtener_pelicula(PELICULAS, id_pelicula)
+    pelicula = peliculas.obtener_pelicula(PELICULAS, id_pelicula)
     if pelicula is None:
         imprimir_error("Esa película no está en el catálogo.")
         return
 
-    fila = pedir_entero("Fila del asiento: ")
-    columna = pedir_entero("Columna del asiento: ")
+    fila = pedir_entero(f"Fila del asiento (0 a {len(SALA)-1}): ")
+    columna = pedir_entero(f"Columna del asiento (0 a {len(SALA[0])-1}): ")
     if fila is None or columna is None:
         imprimir_error("Ingresá números válidos para el asiento.")
         return
 
-    exito, resultado = crear_ticket(id_cliente, id_pelicula, (fila, columna), pelicula["precio"], id_empleado)
+    if not asientos.ocupar_asiento(SALA, fila, columna):
+        imprimir_error("Ese asiento no existe o ya está ocupado.")
+        return
+
+    exito, resultado = tickets.crear_ticket(id_cliente, id_pelicula, (fila, columna), pelicula["precio"], empleado["id"])
+
     if exito:
         imprimir_exito(f"Ticket #{resultado} creado.")
     else:
         imprimir_error(resultado)
+        asientos.liberar_asiento(SALA, fila, columna)
 
 
 def accion_cobrar_ticket():
@@ -166,7 +189,7 @@ def accion_cobrar_ticket():
     if id_ticket is None:
         imprimir_error("Ingresá un número válido.")
         return
-    exito, mensaje = cobrar(id_ticket)
+    exito, mensaje = tickets.cobrar(id_ticket)
     mostrar_resultado(exito, mensaje)
 
 
@@ -175,7 +198,14 @@ def accion_cancelar_ticket():
     if id_ticket is None:
         imprimir_error("Ingresá un número válido.")
         return
-    exito, mensaje = cancelar_ticket(id_ticket)
+    ticket = tickets.obtener_ticket(id_ticket)
+    if ticket is None:
+        imprimir_error("Ese ticket no existe.")
+        return
+    exito, mensaje = tickets.cancelar_ticket(id_ticket)
+    if exito:
+        fila, columna = ticket["asiento"]
+        asientos.liberar_asiento(SALA, fila, columna)
     mostrar_resultado(exito, mensaje)
 
 
@@ -184,12 +214,12 @@ def accion_imprimir_ticket():
     if id_ticket is None:
         imprimir_error("Ingresá un número válido.")
         return
-    ticket = obtener_ticket(id_ticket)
+    ticket = tickets.obtener_ticket(id_ticket)
     if ticket is None:
         imprimir_error("Ese ticket no existe.")
         return
-    pelicula = obtener_pelicula(PELICULAS, ticket["pelicula_id"])
-    cliente = buscar_cliente(ticket["cliente_id"])
+    pelicula = peliculas.obtener_pelicula(PELICULAS, ticket["pelicula_id"])
+    cliente = clientes.buscar_cliente(ticket["cliente_id"])
     titulo = pelicula["titulo"] if pelicula else "?"
     nombre_cliente = cliente["nombre"] if cliente else "?"
     print(f"--- Ticket #{ticket['id']} ---")
@@ -229,9 +259,9 @@ def menu_administrador(usuario_actual):
         elif opcion == "5":
             accion_ver_usuarios()
         elif opcion == "6":
-            accion_agregar_usuario(usuario_actual)
+            accion_agregar_empleado()
         elif opcion == "7":
-            accion_eliminar_usuario(usuario_actual)
+            accion_eliminar_empleado(usuario_actual, "administrador")
         elif opcion == "8":
             accion_ver_tickets()
         elif opcion == "9":
@@ -284,7 +314,7 @@ def menu_empleado(usuario_actual):
         elif opcion == "9":
             accion_ver_tickets()
         elif opcion == "10":
-            exito, mensaje = eliminar_usuario(usuario_actual, usuario_actual, USUARIOS)
+            exito, mensaje = usuarios.baja_usuario(usuario_actual)
             mostrar_resultado(exito, mensaje)
             if exito:
                 break
@@ -298,12 +328,13 @@ def menu_empleado(usuario_actual):
 
 
 def main():
-    usuario, rol = iniciar_sesion(USUARIOS)
+    inicializar()
+    usuario, rol = usuarios.iniciar_sesion()
 
     if usuario is None:
         return
 
-    if rol == "admin":
+    if rol == "administrador":
         menu_administrador(usuario)
     elif rol == "empleado":
         menu_empleado(usuario)
