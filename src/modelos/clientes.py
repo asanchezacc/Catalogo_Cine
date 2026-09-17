@@ -1,350 +1,170 @@
-from src.datos import datos_iniciales
-from src.modelos import usuarios, clientes
-from src.funciones import peliculas, asientos, tickets, estadisticas
-from src.validaciones import validar_contrasena
-from src.vista import imprimir_encabezado, imprimir_exito, imprimir_error, mostrar_catalogo
+"""CRUD de clientes."""
 
-PELICULAS = []
-SALA = None
+import re
 
-
-def inicializar():
-    global SALA
-
-    for i, (titulo, genero, duracion, precio) in enumerate(datos_iniciales.PELICULAS_INICIALES, start=1):
-        peliculas.agregar_pelicula(PELICULAS, i, titulo, genero, duracion, precio)
-
-    datos_iniciales.cargar_clientes()
-    datos_iniciales.cargar_usuarios()
-
-    SALA = asientos.crear_sala(datos_iniciales.SALA_FILAS, datos_iniciales.SALA_COLUMNAS)
+from src.vista import (
+    VERDE,
+    imprimir_advertencia,
+    imprimir_error,
+    imprimir_exito,
+    imprimir_mensaje,
+    mostrar_tabla,
+)
 
 
-def pedir_entero(mensaje):
-    entrada = input(mensaje).strip()
-    if not entrada.isdigit():
-        return None
-    return int(entrada)
+lista_clientes = []
+emails_activos = set()
+id_counter = 1
 
 
-def mostrar_resultado(exito, mensaje):
-    if exito:
-        imprimir_exito(mensaje)
-    else:
-        imprimir_error(mensaje)
+def validar_email(email):
+    """Valida el formato de un email."""
+    patron = r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$"
+    return re.match(patron, email) is not None
 
 
-def accion_ver_catalogo():
-    mostrar_catalogo(PELICULAS)
+def validar_telefono(telefono):
+    """Valida que el telefono contenga solo digitos."""
+    return telefono.isdigit()
 
 
-def accion_ver_clientes():
-    clientes.mostrar_clientes()
+def buscar_cliente(id_cliente):
+    """Devuelve un cliente por su ID o None si no existe."""
+    for cliente in lista_clientes:
+        if cliente["id"] == id_cliente:
+            return cliente
+    return None
 
 
-def accion_dar_alta_cliente():
-    nombre = input("Nombre del cliente: ").strip()
-    email = input("Email: ").strip()
-    telefono = input("Teléfono: ").strip()
-    clientes.alta_cliente(nombre, email, telefono)
+def alta_cliente(nombre, email, telefono, mostrar_mensajes=True):
+    """Agrega un cliente si sus datos basicos son validos."""
+    global id_counter
+
+    if not nombre.strip():
+        if mostrar_mensajes:
+            imprimir_error("El nombre no puede estar vacio")
+        return False
+    if not validar_email(email):
+        if mostrar_mensajes:
+            imprimir_error("Formato de email invalido")
+        return False
+    if email in emails_activos:
+        if mostrar_mensajes:
+            imprimir_error("Este email ya esta registrado")
+        return False
+
+    if not validar_telefono(telefono) and mostrar_mensajes:
+        imprimir_advertencia("El telefono debe contener solo digitos")
+
+    cliente = {
+        "id": id_counter,
+        "nombre": nombre.strip(),
+        "email": email,
+        "telefono": telefono,
+        "estado": True,
+    }
+    lista_clientes.append(cliente)
+    emails_activos.add(email)
+    id_counter += 1
+
+    if mostrar_mensajes:
+        imprimir_exito(f"Cliente '{nombre}' dado de alta con ID {cliente['id']}")
+    return True
 
 
-def accion_dar_baja_cliente():
-    id_cliente = pedir_entero("ID del cliente a dar de baja: ")
-    if id_cliente is None:
-        imprimir_error("Ingresá un ID válido.")
-        return
-    clientes.baja_cliente(id_cliente)
+def baja_cliente(id_cliente):
+    """Realiza la baja logica de un cliente."""
+    cliente = buscar_cliente(id_cliente)
+    if cliente is None:
+        imprimir_error(f"No existe cliente con ID {id_cliente}")
+        return False
+    if not cliente["estado"]:
+        imprimir_advertencia("El cliente ya estaba inactivo")
+        return True
+
+    cliente["estado"] = False
+    imprimir_exito(f"Cliente ID {id_cliente} dado de baja")
+    return True
 
 
-def accion_ver_usuarios():
-    for u in usuarios.usuarios:
-        print(f"{u['usuario']} - {u['nombre']} - {u['rol']}")
+def modificar_cliente(id_cliente, nombre=None, email=None, telefono=None):
+    """Modifica los datos recibidos de un cliente existente."""
+    cliente = buscar_cliente(id_cliente)
+    if cliente is None:
+        imprimir_error(f"No existe cliente con ID {id_cliente}")
+        return False
+
+    if email is not None:
+        if not validar_email(email):
+            imprimir_error("Formato de email invalido.")
+            return False
+        if email != cliente["email"] and email in emails_activos:
+            imprimir_error("El email ya esta registrado por otro cliente")
+            return False
+        if email != cliente["email"]:
+            emails_activos.remove(cliente["email"])
+            emails_activos.add(email)
+        cliente["email"] = email
+
+    if nombre is not None:
+        if not nombre.strip():
+            imprimir_error("El nombre no puede estar vacio")
+            return False
+        cliente["nombre"] = nombre.strip()
+
+    if telefono is not None:
+        if not validar_telefono(telefono):
+            imprimir_advertencia("El telefono debe contener solo digitos")
+        cliente["telefono"] = telefono
+
+    imprimir_exito(f"Cliente ID {id_cliente} modificado correctamente")
+    return True
 
 
-def accion_agregar_empleado():
-    nombre = input("Nombre completo: ").strip()
-    nuevo_usuario = input("Nombre de usuario: ").strip()
-
-    if not nuevo_usuario:
-        imprimir_error("El nombre de usuario no puede estar vacío.")
-        return
-
-    contrasena = input("Contraseña: ")
-    es_valida, mensaje = validar_contrasena(contrasena)
-    if not es_valida:
-        imprimir_error(mensaje)
-        return
-
-    exito, resultado = usuarios.alta_usuario(nombre, nuevo_usuario, contrasena, "empleado")
-    if exito:
-        imprimir_exito(f"Empleado '{nuevo_usuario}' agregado.")
-    else:
-        imprimir_error(resultado)
+def listar_clientes(mostrar_inactivos=False):
+    """Devuelve copias de los clientes activos o de todos los clientes."""
+    if mostrar_inactivos:
+        return [cliente.copy() for cliente in lista_clientes]
+    return [cliente.copy() for cliente in lista_clientes if cliente["estado"]]
 
 
-def accion_eliminar_empleado(usuario_actual, rol_actual):
-    usuario_a_borrar = input("Usuario a borrar: ").strip()
-    objetivo = usuarios.buscar_usuario(usuario_a_borrar)
-
-    if objetivo is None:
-        imprimir_error("Ese usuario no existe.")
-        return
-
-    if objetivo["rol"] == "administrador":
-        imprimir_error("No se puede borrar a un administrador.")
-        return
-
-    if rol_actual == "empleado" and usuario_a_borrar != usuario_actual:
-        imprimir_error("Como empleado, solo podés darte de baja a vos mismo.")
-        return
-
-    exito, mensaje = usuarios.baja_usuario(usuario_a_borrar)
-    mostrar_resultado(exito, mensaje)
-
-
-def accion_cambiar_contrasena(usuario_actual):
-    nueva_contrasena = input("Nueva contraseña: ")
-    es_valida, mensaje = validar_contrasena(nueva_contrasena)
-    if not es_valida:
-        imprimir_error(mensaje)
-        return
-    exito, mensaje = usuarios.actualizar_contrasena(usuario_actual, nueva_contrasena)
-    mostrar_resultado(exito, mensaje)
-
-
-def accion_ver_historial():
-    entradas = usuarios.ver_historial()
-    if not entradas:
-        print("No hay historial todavía.")
-        return
-    for accion, usuario, rol in entradas:
-        print(f"{accion} - {usuario} ({rol})")
-
-
-def accion_ver_estadisticas():
-    resumen = estadisticas.resumen_estadisticas(tickets.tickets_registrados)
-    print(f"Precio promedio: ${resumen['promedio_precio']:.2f}")
-    print(f"Tickets pendientes: {resumen['cantidad_pendientes']}")
-    print(f"Tickets cobrados: {resumen['cantidad_cobrados']}")
-    print(f"Tickets cancelados: {resumen['cantidad_cancelados']}")
-    print(f"Porcentaje cobrados: {resumen['porcentaje_cobrados']:.1f}%")
-    print(f"Total recaudado: ${resumen['total_recaudado']}")
-
-
-def accion_ver_tickets():
-    if not tickets.tickets_registrados:
-        print("No hay tickets para mostrar.")
-        return
-    lineas = map(
-        lambda t: f"#{t['id']} - cliente {t['cliente_id']} - película {t['pelicula_id']} - asiento {t['asiento']} - ${t['precio']} - {t['estado']}",
-        tickets.tickets_registrados,
-    )
-    for linea in lineas:
-        print(linea)
-
-
-def accion_crear_ticket(usuario_actual):
-    empleado = usuarios.buscar_usuario(usuario_actual)
-
-    id_cliente = pedir_entero("ID del cliente: ")
-    if id_cliente is None:
-        imprimir_error("Ingresá un ID válido.")
-        return
-    if clientes.buscar_cliente(id_cliente) is None:
-        imprimir_error("No existe un cliente con ese ID.")
+def mostrar_clientes(mostrar_inactivos=False):
+    """Muestra los clientes en formato de tabla."""
+    datos = listar_clientes(mostrar_inactivos)
+    if not datos:
+        imprimir_advertencia("No hay clientes para mostrar")
         return
 
-    accion_ver_catalogo()
-    id_pelicula = pedir_entero("ID de la película: ")
-    if id_pelicula is None:
-        imprimir_error("Ingresá un ID válido.")
-        return
-    pelicula = peliculas.obtener_pelicula(PELICULAS, id_pelicula)
-    if pelicula is None:
-        imprimir_error("Esa película no está en el catálogo.")
-        return
-
-    fila = pedir_entero(f"Fila del asiento (0 a {len(SALA)-1}): ")
-    columna = pedir_entero(f"Columna del asiento (0 a {len(SALA[0])-1}): ")
-    if fila is None or columna is None:
-        imprimir_error("Ingresá números válidos para el asiento.")
-        return
-
-    if not asientos.ocupar_asiento(SALA, fila, columna):
-        imprimir_error("Ese asiento no existe o ya está ocupado.")
-        return
-
-    exito, resultado = tickets.crear_ticket(id_cliente, id_pelicula, (fila, columna), pelicula["precio"], empleado["id"])
-
-    if exito:
-        imprimir_exito(f"Ticket #{resultado} creado.")
-    else:
-        imprimir_error(resultado)
-        asientos.liberar_asiento(SALA, fila, columna)
+    datos_mostrar = [
+        {**cliente, "estado": "Activo" if cliente["estado"] else "Inactivo"}
+        for cliente in datos
+    ]
+    columnas = [
+        ("ID", "id", 5),
+        ("Nombre", "nombre", 25),
+        ("Email", "email", 30),
+        ("Telefono", "telefono", 15),
+        ("Estado", "estado", 10),
+    ]
+    mostrar_tabla(datos_mostrar, columnas)
 
 
-def accion_cobrar_ticket():
-    id_ticket = pedir_entero("Número de ticket a cobrar: ")
-    if id_ticket is None:
-        imprimir_error("Ingresá un número válido.")
-        return
-    exito, mensaje = tickets.cobrar(id_ticket)
-    mostrar_resultado(exito, mensaje)
+def ordenar_clientes(campo, reverse=False):
+    """Devuelve los clientes ordenados por un campo permitido."""
+    if campo not in ("id", "nombre", "email", "estado"):
+        imprimir_error("Campo invalido para ordenar")
+        return [cliente.copy() for cliente in lista_clientes]
+    return sorted(lista_clientes, key=lambda cliente: cliente[campo], reverse=reverse)
 
 
-def accion_cancelar_ticket():
-    id_ticket = pedir_entero("Número de ticket a cancelar: ")
-    if id_ticket is None:
-        imprimir_error("Ingresá un número válido.")
-        return
-    ticket = tickets.obtener_ticket(id_ticket)
-    if ticket is None:
-        imprimir_error("Ese ticket no existe.")
-        return
-    exito, mensaje = tickets.cancelar_ticket(id_ticket)
-    if exito:
-        fila, columna = ticket["asiento"]
-        asientos.liberar_asiento(SALA, fila, columna)
-    mostrar_resultado(exito, mensaje)
-
-
-def accion_imprimir_ticket():
-    id_ticket = pedir_entero("Número de ticket: ")
-    if id_ticket is None:
-        imprimir_error("Ingresá un número válido.")
-        return
-    ticket = tickets.obtener_ticket(id_ticket)
-    if ticket is None:
-        imprimir_error("Ese ticket no existe.")
-        return
-    pelicula = peliculas.obtener_pelicula(PELICULAS, ticket["pelicula_id"])
-    cliente = clientes.buscar_cliente(ticket["cliente_id"])
-    titulo = pelicula["titulo"] if pelicula else "?"
-    nombre_cliente = cliente["nombre"] if cliente else "?"
-    print(f"--- Ticket #{ticket['id']} ---")
-    print(f"Cliente: {nombre_cliente}")
-    print(f"Película: {titulo}")
-    print(f"Asiento: {ticket['asiento']}")
-    print(f"Precio: ${ticket['precio']}")
-    print(f"Estado: {ticket['estado']}")
-
-
-def menu_administrador(usuario_actual):
-    continuar = True
-
-    while continuar:
-        imprimir_encabezado("Menú administrador")
-        print("1. Ver catálogo de películas")
-        print("2. Ver clientes")
-        print("3. Dar de alta un cliente")
-        print("4. Dar de baja un cliente")
-        print("5. Ver usuarios")
-        print("6. Dar de alta un empleado")
-        print("7. Borrar un empleado")
-        print("8. Ver todos los tickets")
-        print("9. Ver historial de usuarios")
-        print("10. Ver estadísticas")
-        print("11. Cambiar mi contraseña")
-        print("12. Salir")
-
-        opcion = input("Elegí una opción: ").strip()
-
-        if opcion == "1":
-            accion_ver_catalogo()
-        elif opcion == "2":
-            accion_ver_clientes()
-        elif opcion == "3":
-            accion_dar_alta_cliente()
-        elif opcion == "4":
-            accion_dar_baja_cliente()
-        elif opcion == "5":
-            accion_ver_usuarios()
-        elif opcion == "6":
-            accion_agregar_empleado()
-        elif opcion == "7":
-            accion_eliminar_empleado(usuario_actual, "administrador")
-        elif opcion == "8":
-            accion_ver_tickets()
-        elif opcion == "9":
-            accion_ver_historial()
-        elif opcion == "10":
-            accion_ver_estadisticas()
-        elif opcion == "11":
-            accion_cambiar_contrasena(usuario_actual)
-        elif opcion == "12":
-            print("Cerrando sesión.")
-            continuar = False
-        else:
-            imprimir_error("Opción inválida.")
-
-
-def menu_empleado(usuario_actual):
-    continuar = True
-
-    while continuar:
-        imprimir_encabezado("Menú empleado")
-        print("1. Ver catálogo de películas")
-        print("2. Ver clientes")
-        print("3. Dar de alta un cliente")
-        print("4. Dar de baja un cliente")
-        print("5. Dar una reserva")
-        print("6. Cobrar un ticket")
-        print("7. Cancelar un ticket")
-        print("8. Imprimir ticket")
-        print("9. Ver todos los tickets")
-        print("10. Darme de baja")
-        print("11. Cambiar mi contraseña")
-        print("12. Salir")
-
-        opcion = input("Elegí una opción: ").strip()
-
-        if opcion == "1":
-            accion_ver_catalogo()
-        elif opcion == "2":
-            accion_ver_clientes()
-        elif opcion == "3":
-            accion_dar_alta_cliente()
-        elif opcion == "4":
-            accion_dar_baja_cliente()
-        elif opcion == "5":
-            accion_crear_ticket(usuario_actual)
-        elif opcion == "6":
-            accion_cobrar_ticket()
-        elif opcion == "7":
-            accion_cancelar_ticket()
-        elif opcion == "8":
-            accion_imprimir_ticket()
-        elif opcion == "9":
-            accion_ver_tickets()
-        elif opcion == "10":
-            exito, mensaje = usuarios.baja_usuario(usuario_actual)
-            mostrar_resultado(exito, mensaje)
-            if exito:
-                continuar = False
-        elif opcion == "11":
-            accion_cambiar_contrasena(usuario_actual)
-        elif opcion == "12":
-            print("Cerrando sesión.")
-            continuar = False
-        else:
-            imprimir_error("Opción inválida.")
-
-
-def main():
-    imprimir_encabezado("Sistema de cine")
-    inicializar()
-    usuario, rol = usuarios.iniciar_sesion()
-
-    if usuario is None:
-        return
-
-    if rol == "administrador":
-        menu_administrador(usuario)
-    elif rol == "empleado":
-        menu_empleado(usuario)
+def clientes_activos_conjunto():
+    """Devuelve un conjunto con los IDs de clientes activos."""
+    return {cliente["id"] for cliente in lista_clientes if cliente["estado"]}
 
 
 if __name__ == "__main__":
-    main()
-
+    imprimir_mensaje("=== Prueba del Modulo Clientes ===", VERDE)
+    alta_cliente("Lary Choi", "larychoi@email.com", "1122334455")
+    alta_cliente("Tomas Moran", "tomasmoran@email.com", "1166778899")
+    alta_cliente("Juan Cruz Iocco", "juaniocco@email.com", "1144556677")
+    mostrar_clientes()
