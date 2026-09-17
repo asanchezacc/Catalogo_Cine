@@ -41,13 +41,6 @@ def accion_ver_clientes():
     clientes.mostrar_clientes()
 
 
-def accion_dar_alta_cliente():
-    nombre = input("Nombre del cliente: ").strip()
-    email = input("Email: ").strip()
-    telefono = input("Teléfono: ").strip()
-    clientes.alta_cliente(nombre, email, telefono)
-
-
 def accion_dar_baja_cliente():
     id_cliente = pedir_entero("ID del cliente a dar de baja: ")
     if id_cliente is None:
@@ -236,16 +229,15 @@ def menu_administrador(usuario_actual):
         imprimir_encabezado("Menú administrador")
         print("1. Ver catálogo de películas")
         print("2. Ver clientes")
-        print("3. Dar de alta un cliente")
-        print("4. Dar de baja un cliente")
-        print("5. Ver usuarios")
-        print("6. Dar de alta un empleado")
-        print("7. Borrar un empleado")
-        print("8. Ver todos los tickets")
-        print("9. Ver historial de usuarios")
-        print("10. Ver estadísticas")
-        print("11. Cambiar mi contraseña")
-        print("12. Salir")
+        print("3. Dar de baja un cliente")
+        print("4. Ver usuarios")
+        print("5. Dar de alta un empleado")
+        print("6. Borrar un empleado")
+        print("7. Ver todos los tickets")
+        print("8. Ver historial de usuarios")
+        print("9. Ver estadísticas")
+        print("10. Cambiar mi contraseña")
+        print("11. Salir")
 
         opcion = input("Elegí una opción: ").strip()
 
@@ -254,24 +246,22 @@ def menu_administrador(usuario_actual):
         elif opcion == "2":
             accion_ver_clientes()
         elif opcion == "3":
-            accion_dar_alta_cliente()
-        elif opcion == "4":
             accion_dar_baja_cliente()
-        elif opcion == "5":
+        elif opcion == "4":
             accion_ver_usuarios()
-        elif opcion == "6":
+        elif opcion == "5":
             accion_agregar_empleado()
-        elif opcion == "7":
+        elif opcion == "6":
             accion_eliminar_empleado(usuario_actual, "administrador")
-        elif opcion == "8":
+        elif opcion == "7":
             accion_ver_tickets()
-        elif opcion == "9":
+        elif opcion == "8":
             accion_ver_historial()
-        elif opcion == "10":
+        elif opcion == "9":
             accion_ver_estadisticas()
-        elif opcion == "11":
+        elif opcion == "10":
             accion_cambiar_contrasena(usuario_actual)
-        elif opcion == "12":
+        elif opcion == "11":
             print("Cerrando sesión.")
             continuar = False
         else:
@@ -285,16 +275,15 @@ def menu_empleado(usuario_actual):
         imprimir_encabezado("Menú empleado")
         print("1. Ver catálogo de películas")
         print("2. Ver clientes")
-        print("3. Dar de alta un cliente")
-        print("4. Dar de baja un cliente")
-        print("5. Dar una reserva")
-        print("6. Cobrar un ticket")
-        print("7. Cancelar un ticket")
-        print("8. Imprimir ticket")
-        print("9. Ver todos los tickets")
-        print("10. Darme de baja")
-        print("11. Cambiar mi contraseña")
-        print("12. Salir")
+        print("3. Dar de baja un cliente")
+        print("4. Dar una reserva")
+        print("5. Cobrar un ticket")
+        print("6. Cancelar un ticket")
+        print("7. Imprimir ticket")
+        print("8. Ver todos los tickets")
+        print("9. Darme de baja")
+        print("10. Cambiar mi contraseña")
+        print("11. Salir")
 
         opcion = input("Elegí una opción: ").strip()
 
@@ -303,27 +292,25 @@ def menu_empleado(usuario_actual):
         elif opcion == "2":
             accion_ver_clientes()
         elif opcion == "3":
-            accion_dar_alta_cliente()
-        elif opcion == "4":
             accion_dar_baja_cliente()
-        elif opcion == "5":
+        elif opcion == "4":
             accion_crear_ticket(usuario_actual)
-        elif opcion == "6":
+        elif opcion == "5":
             accion_cobrar_ticket()
-        elif opcion == "7":
+        elif opcion == "6":
             accion_cancelar_ticket()
-        elif opcion == "8":
+        elif opcion == "7":
             accion_imprimir_ticket()
-        elif opcion == "9":
+        elif opcion == "8":
             accion_ver_tickets()
-        elif opcion == "10":
+        elif opcion == "9":
             exito, mensaje = usuarios.baja_usuario(usuario_actual)
             mostrar_resultado(exito, mensaje)
             if exito:
                 continuar = False
-        elif opcion == "11":
+        elif opcion == "10":
             accion_cambiar_contrasena(usuario_actual)
-        elif opcion == "12":
+        elif opcion == "11":
             print("Cerrando sesión.")
             continuar = False
         else:
