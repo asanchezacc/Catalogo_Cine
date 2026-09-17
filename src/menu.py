@@ -231,7 +231,9 @@ def accion_imprimir_ticket():
 
 
 def menu_administrador(usuario_actual):
-    while True:
+    continuar = True
+
+    while continuar:
         imprimir_encabezado("Menú administrador")
         print("1. Ver catálogo de películas")
         print("2. Ver clientes")
@@ -272,13 +274,15 @@ def menu_administrador(usuario_actual):
             accion_cambiar_contrasena(usuario_actual)
         elif opcion == "12":
             print("Cerrando sesión.")
-            break
+            continuar = False
         else:
             imprimir_error("Opción inválida.")
 
 
 def menu_empleado(usuario_actual):
-    while True:
+    continuar = True
+
+    while continuar:
         imprimir_encabezado("Menú empleado")
         print("1. Ver catálogo de películas")
         print("2. Ver clientes")
@@ -317,12 +321,12 @@ def menu_empleado(usuario_actual):
             exito, mensaje = usuarios.baja_usuario(usuario_actual)
             mostrar_resultado(exito, mensaje)
             if exito:
-                break
+                continuar = False
         elif opcion == "11":
             accion_cambiar_contrasena(usuario_actual)
         elif opcion == "12":
             print("Cerrando sesión.")
-            break
+            continuar = False
         else:
             imprimir_error("Opción inválida.")
 

@@ -1,7 +1,13 @@
 usuarios = []
-id_counter = 1
 
 HISTORIAL = []
+
+
+def _proximo_id(lista_usuarios):
+    if not lista_usuarios:
+        return 1
+    ids = [u["id"] for u in lista_usuarios]
+    return max(ids) + 1
 
 
 def buscar_usuario(usuario):
@@ -24,8 +30,6 @@ def verificar_credenciales(usuario, contrasena):
 
 
 def alta_usuario(nombre, usuario, contrasena, rol):
-    global id_counter
-
     if not nombre.strip():
         return False, "El nombre no puede estar vacío."
 
@@ -33,7 +37,7 @@ def alta_usuario(nombre, usuario, contrasena, rol):
         return False, "Ese nombre de usuario ya existe."
 
     nuevo_usuario = {
-        "id": id_counter,
+        "id": _proximo_id(usuarios),
         "nombre": nombre.strip(),
         "usuario": usuario,
         "contraseña": contrasena,
@@ -41,7 +45,6 @@ def alta_usuario(nombre, usuario, contrasena, rol):
     }
 
     usuarios.append(nuevo_usuario)
-    id_counter += 1
     HISTORIAL.append(("alta", usuario, rol))
     return True, nuevo_usuario
 
