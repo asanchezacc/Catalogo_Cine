@@ -3,7 +3,7 @@ CRUD de clientes
 Funciones para validar emails, evitar duplicados, ordenar con lambda, vista para mensajes y tablas
 """
 import re
-from src.vista import (imprimir_error, imprimir_exito, imprimir_advertencia, mostrar_tabla, imprimir_mensaje, VERDE, RESET)
+from src.vista import imprimir_error, imprimir_exito, imprimir_advertencia, mostrar_tabla, imprimir_mensaje, VERDE, RESET
 
 clientes = [] # lista de diccionarios
 emails_activos = set() # conjunto de emails
@@ -11,7 +11,7 @@ id_counter = 1
 
 def validar_email(email):
     """Valida formato de email con expresión regular."""
-    patron = r'^[a-zA-z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
+    patron = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
     return re.match(patron, email) is not None
 
 def validar_telefono(telefono):
@@ -115,9 +115,11 @@ def mostrar_clientes(mostrar_inactivos=False):
         imprimir_advertencia("No hay clientes para mostrar")
         return
 
-    #Convertir estado a texto para mostrar
-    for fila in datos:
-        fila["estado"] = "Activo" if fila["estado"] else "Inactivo"
+    # Crear copias para no modificar las originales
+    datos_mostrar = [
+        {**cli, "estado": "Activo" if cli["estado"] else "Inactivo"}
+        for cli in datos
+    ]
 
     columnas = [
         ("ID", "id", 5),
@@ -126,7 +128,7 @@ def mostrar_clientes(mostrar_inactivos=False):
         ("Telefono", "telefono", 15),
         ("Estado", "estado", 10)
     ]
-    mostrar_tabla(datos, columnas)
+    mostrar_tabla(datos_mostrar, columnas)
 
 def ordenar_clientes(campo, reverse=False):
     """Ordena la lista de clientes usando lambda"""
