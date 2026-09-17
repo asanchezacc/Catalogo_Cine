@@ -62,14 +62,14 @@ def cargar_usuarios():
             cantidad += 1
     return cantidad
 
-def cargar_datos():
+def cargar_datos(lista_peliculas):
     """Carga todos los datos iniciales y crea la sala."""
     imprimir_encabezado("Cargando datos")
 
     n_clientes = cargar_clientes()
     imprimir_mensaje(f"Clientes cargados: {n_clientes}", CYAN)
 
-    n_peliculas = cargar_peliculas()
+    n_peliculas = cargar_peliculas(lista_peliculas)
     imprimir_mensaje(f"Peliculas cargadas: {n_peliculas}", CYAN)
 
     n_usuarios = cargar_usuarios()
@@ -81,14 +81,15 @@ def cargar_datos():
     return sala
 
 if __name__ == "__main__":
-    sala = cargar_datos()
+    lista_peliculas = []
+    sala = cargar_datos(lista_peliculas)
 
     print("\n--- Clientes ---")
     for c in clientes.listar_clientes():
         print(f"ID {c['id']:>2} | {c['nombre']:<20} | {c['email']}")
 
     print("\n--- Peliculas ---")
-    for p in peliculas.listar_peliculas():
+    for p in peliculas.listar_peliculas(lista_peliculas):
         print(f"ID {p['id']:>2} | {p['titulo']:<30} | ${p['precio']}")
 
     print("\n--- Usuarios ---")
