@@ -195,7 +195,7 @@ def accion_cobrar_ticket():
 def accion_cancelar_ticket():
     id_ticket = pedir_entero("Número de ticket a cancelar: ")
     if id_ticket is None:
-        imprimir_error("Ingresá un número válido.")
+        imprimir_error("Ingresá un ID válido.")
         return
     ticket = tickets.obtener_ticket(id_ticket)
     if ticket is None:
@@ -331,6 +331,7 @@ def menu_empleado(usuario_actual):
 
 
 def main():
+    imprimir_encabezado("Sistema de cine")
     inicializar()
     usuario, rol = usuarios.iniciar_sesion()
 
@@ -345,3 +346,5 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+
