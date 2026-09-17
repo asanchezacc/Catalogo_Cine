@@ -11,8 +11,7 @@ SALA = None
 def inicializar():
     global SALA
 
-    for i, (titulo, genero, duracion, precio) in enumerate(datos_iniciales.PELICULAS_INICIALES, start=1):
-        peliculas.agregar_pelicula(PELICULAS, i, titulo, genero, duracion, precio)
+    datos_iniciales.cargar_peliculas(PELICULAS)
 
     datos_iniciales.cargar_clientes()
     datos_iniciales.cargar_usuarios()
