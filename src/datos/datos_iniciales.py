@@ -37,11 +37,19 @@ def cargar_clientes():
             cantidad += 1
     return cantidad
 
-def cargar_peliculas():
-    """Da de alta las peliculas de prueba"""
+def cargar_peliculas(lista_peliculas):
+    """Da de alta las peliculas de prueba en la lista recibida."""
     cantidad = 0
-    for titulo, genero, duracion, precio in PELICULAS_INICIALES:
-        if peliculas.agregar_pelicula(titulo, genero, duracion, precio):
+    for id_pelicula, datos in enumerate(PELICULAS_INICIALES, start=1):
+        titulo, genero, duracion, precio = datos
+        if peliculas.agregar_pelicula(
+            lista_peliculas,
+            id_pelicula,
+            titulo,
+            genero,
+            duracion,
+            precio,
+        ):
             cantidad += 1
     return cantidad
 
