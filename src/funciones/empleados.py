@@ -1,151 +1,74 @@
-from src.modelos import clientes
-from src.funciones import peliculas, asientos, tickets
+"""importar las demas funciones cuando esten echas"""
 
-
-# ------------------ Clientes ------------------
-
-def alta_cliente(nombre, email, telefono):
-    """Da de alta un nuevo cliente. clientes.py ya informa el resultado por pantalla."""
-    return clientes.alta_cliente(nombre, email, telefono)
-
-
-def baja_cliente(id_cliente):
-    """Da de baja (lógica) a un cliente por su ID."""
-    return clientes.baja_cliente(id_cliente)
-
-
-def actualizar_cliente(id_cliente, nombre=None, email=None, telefono=None):
-    """Modifica los datos (nombre, email y/o teléfono) de un cliente existente."""
-    return clientes.modificar_cliente(id_cliente, nombre, email, telefono)
+def borrar_cliente(id_cliente):
+    """Da de baja a un cliente."""
+    return clientes.eliminar_cliente(id_cliente)
 
 
 def ver_cliente(id_cliente):
-    """Devuelve los datos de un cliente puntual, o None si no existe."""
-    return clientes.buscar_cliente(id_cliente)
+    """Muestra los datos de un cliente."""
+    return clientes.obtener_cliente(id_cliente)
 
 
-def listar_clientes(mostrar_inactivos=False):
-    """Devuelve la lista de clientes registrados."""
-    return clientes.listar_clientes(mostrar_inactivos)
+def lista_clientes():
+    """Muestra todos los clientes."""
+    return clientes.lista_clientes()
 
 
-# ------------------ Películas (consulta, sin modificar el catálogo) ------------------
+# ------------------ Reservas, asientos y tickets ------------------
 
-def ver_peliculas(catalogo):
-    """Devuelve una copia del catálogo de películas."""
-    return peliculas.listar_peliculas(catalogo)
-
-
-def buscar_pelicula(catalogo, texto):
-    """Devuelve las películas cuyo título contiene el texto buscado."""
-    return list(filter(lambda p: texto.lower() in p["titulo"].lower(), catalogo))
-
-
-# ------------------ Sala: matriz -> conjunto -> diccionario ------------------
-
-def asientos_ocupados(sala):
-    """
-    Devuelve un CONJUNTO de tuplas (fila, columna) con los asientos ocupados.
-    Sirve para consultar rápido con 'in' si una butaca puntual está tomada.
-    """
-    return {
-        (fila_idx, columna_idx)
-        for fila_idx, fila in enumerate(sala)
-        for columna_idx, estado in enumerate(fila)
-        if estado == asientos.ASIENTO_OCUPADO
-    }
-
-
-def mapa_ocupacion(sala):
-    """
-    Convierte la matriz de la sala en un DICCIONARIO más legible: cada
-    clave es una TUPLA (fila, columna) -inmutable, por eso puede ser
-    clave- y el valor es "Libre" u "Ocupado".
-    """
-    ocupados = asientos_ocupados(sala)
-    mapa = {}
-    for fila_idx, fila in enumerate(sala):
-        for columna_idx in range(len(fila)):
-            clave = (fila_idx, columna_idx)
-            mapa[clave] = "Ocupado" if clave in ocupados else "Libre"
-    return mapa
-
-
-# ------------------ Reservas y tickets ------------------
-
-def dar_reserva(sala, cliente_id, pelicula_id, precio, fila, columna, empleado_id):
-    """
-    Ocupa un asiento de la sala y genera el ticket de la reserva.
-    Devuelve (True, id_ticket) si se pudo reservar, o (False, mensaje) si no.
-    Si el ticket no llega a crearse, libera el asiento para no dejarlo trabado.
-    """
-    if clientes.buscar_cliente(cliente_id) is None:
-        return False, "No existe un cliente con ese ID."
-
-    if not asientos.ocupar_asiento(sala, fila, columna):
-        return False, "Ese asiento no existe o ya está ocupado."
-
-    asiento = (fila, columna)
-    exito, resultado = tickets.crear_ticket(cliente_id, pelicula_id, asiento, precio, empleado_id)
-
-    if not exito:
-        asientos.liberar_asiento(sala, fila, columna)
+def dar_asiento(id_asiento, id_cliente, id_pelicula, precio):
+    """Ocupa un asiento y genera el ticket de la reserva."""
+    ok, resultado = asientos.ocupar_asiento(id_asiento)
+    if not ok:
         return False, resultado
+    return tickets.crear_ticket(id_cliente, id_pelicula, id_asiento, precio)
 
-    return True, resultado
 
-
-def cancelar_reserva(sala, id_ticket):
-    """
-    Cancela un ticket pendiente y libera el asiento que tenía asignado.
-    Devuelve (True, mensaje) o (False, mensaje).
-    """
+def cancelar_reserva(id_ticket):
+    """Cancela un ticket y libera el asiento que tenía asignado."""
     ticket = tickets.obtener_ticket(id_ticket)
     if ticket is None:
-        return False, "Ese ticket no existe."
+        return False, "Ticket no encontrado."
 
-    exito, mensaje = tickets.cancelar_ticket(id_ticket)
-    if exito:
-        fila, columna = ticket["asiento"]
-        asientos.liberar_asiento(sala, fila, columna)
-
-    return exito, mensaje
+    asientos.liberar_asiento(ticket["asiento_id"])
+    return tickets.cancelar_ticket(id_ticket)
 
 
-def cobrar_ticket(id_ticket):
-    """Cobra un ticket pendiente. Devuelve (True, mensaje) o (False, mensaje)."""
-    return tickets.cobrar(id_ticket)
-
-
-def obtener_datos_ticket(id_ticket, catalogo):
-    """
-    Junta los datos de un ticket con el título de la película y el
-    nombre del cliente, listos para mostrarlos. Devuelve un diccionario
-    o None si el ticket no existe.
-    """
+def cobrar(id_ticket):
+    """Cobra un ticket ya generado."""
     ticket = tickets.obtener_ticket(id_ticket)
     if ticket is None:
-        return None
-
-    pelicula = peliculas.obtener_pelicula(catalogo, ticket["pelicula_id"])
-    cliente = clientes.buscar_cliente(ticket["cliente_id"])
-
-    return {
-        "id": ticket["id"],
-        "cliente": cliente["nombre"] if cliente else "?",
-        "pelicula": pelicula["titulo"] if pelicula else "?",
-        "asiento": ticket["asiento"],
-        "precio": ticket["precio"],
-        "estado": ticket["estado"],
-    }
+        return False, "Ticket no encontrado."
+    return True, f"Cobrado ${ticket['precio']} del ticket {id_ticket}."
 
 
-def ver_reservas(empleado_id=None):
-    """
-    Devuelve los tickets registrados. Si se indica empleado_id, filtra
-    solo los que generó ese empleado; cualquier empleado puede omitir
-    el filtro para ver también las reservas que dieron sus compañeros.
-    """
-    if empleado_id is None:
-        return tickets.tickets_registrados
-    return list(filter(lambda t: t["empleado_id"] == empleado_id, tickets.tickets_registrados))
+def imprimir_ticket(id_ticket):
+    """Imprime los datos de un ticket."""
+    ticket = tickets.obtener_ticket(id_ticket)
+    if ticket is None:
+        return False, "Ticket no encontrado."
+    print(f"--- Ticket #{ticket['id']} ---")
+    print(f"Cliente: {ticket['cliente_id']}")
+    print(f"Película: {ticket['pelicula_id']}")
+    print(f"Asiento: {ticket['asiento_id']}")
+    print(f"Precio: ${ticket['precio']}")
+    return True, "Ticket impreso."
+
+
+def ver_reservas():
+    """Muestra todas las reservas hechas."""
+    return tickets.listar_tickets()
+
+
+# ------------------ Consultas al catálogo de películas ------------------
+
+def ver_peliculas():
+    """Muestra el catálogo completo de películas."""
+    return peliculas.listar_peliculas()
+
+
+def buscar_pelicula(nombre):
+    """Busca película en especifico"""
+    todas = peliculas.listar_peliculas()
+    return list(filter(lambda p: nombre.lower() in p["nombre"].lower(), todas))
