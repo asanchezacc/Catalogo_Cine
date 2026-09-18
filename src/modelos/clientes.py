@@ -14,7 +14,7 @@ from src.vista import (
 
 lista_clientes = []
 emails_activos = set()
-id_counter = 1
+
 
 
 def validar_email(email):
@@ -38,16 +38,17 @@ def buscar_cliente(id_cliente):
 
 def alta_cliente(nombre, email, telefono, mostrar_mensajes=True):
     """Agrega un cliente si sus datos basicos son validos."""
-    global id_counter
 
     if not nombre.strip():
         if mostrar_mensajes:
             imprimir_error("El nombre no puede estar vacio")
         return False
+
     if not validar_email(email):
         if mostrar_mensajes:
             imprimir_error("Formato de email invalido")
         return False
+
     if email in emails_activos:
         if mostrar_mensajes:
             imprimir_error("Este email ya esta registrado")
@@ -56,19 +57,22 @@ def alta_cliente(nombre, email, telefono, mostrar_mensajes=True):
     if not validar_telefono(telefono) and mostrar_mensajes:
         imprimir_advertencia("El telefono debe contener solo digitos")
 
+    nuevo_id = len(lista_clientes) + 1
+
     cliente = {
-        "id": id_counter,
+        "id": nuevo_id,
         "nombre": nombre.strip(),
         "email": email,
         "telefono": telefono,
         "estado": True,
     }
+
     lista_clientes.append(cliente)
     emails_activos.add(email)
-    id_counter += 1
 
     if mostrar_mensajes:
         imprimir_exito(f"Cliente '{nombre}' dado de alta con ID {cliente['id']}")
+
     return True
 
 
@@ -135,10 +139,19 @@ def mostrar_clientes(mostrar_inactivos=False):
         imprimir_advertencia("No hay clientes para mostrar")
         return
 
-    datos_mostrar = [
-        {**cliente, "estado": "Activo" if cliente["estado"] else "Inactivo"}
-        for cliente in datos
-    ]
+    datos_mostrar = []
+
+    for cliente in datos:
+        cliente_mostrar = cliente.copy()
+
+        if cliente["estado"]:
+            cliente_mostrar["estado"] = "Activo"
+        else:
+            cliente_mostrar["estado"] = "Inactivo"
+
+        datos_mostrar.append(cliente_mostrar)
+
+
     columnas = [
         ("ID", "id", 5),
         ("Nombre", "nombre", 25),
@@ -159,7 +172,14 @@ def ordenar_clientes(campo, reverse=False):
 
 def clientes_activos_conjunto():
     """Devuelve un conjunto con los IDs de clientes activos."""
-    return {cliente["id"] for cliente in lista_clientes if cliente["estado"]}
+
+    ids_activos = set()
+
+    for cliente in lista_clientes:
+        if cliente["estado"]:
+            ids_activos.add(cliente["id"])
+
+    return ids_activos
 
 
 if __name__ == "__main__":

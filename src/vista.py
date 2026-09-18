@@ -88,14 +88,17 @@ def mostrar_matriz(matriz, encabezados=None, ancho=20):
         print(f"{CYAN}{BOLD}", end="")
         for titulo in encabezados:
             print(f"{titulo.upper():<{ancho}}", end="")
-        print()  # salto de línea
+        print()
         print(f"{CYAN}{'-' * (len(encabezados) * ancho)}{RESET}")
 
     # Mostrar filas
     for fila in matriz:
         for valor in fila:
-            if isinstance(valor, bool):
-                valor = "Activo" if valor else "Inactivo"
+            if type(valor) == bool:
+                if valor:
+                    valor = "Activo"
+                else:
+                    valor = "Inactivo"
             print(f"{str(valor):<{ancho}}", end="")
         print()
 

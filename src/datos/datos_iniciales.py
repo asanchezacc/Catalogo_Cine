@@ -33,15 +33,18 @@ def cargar_clientes():
     """Da de alta los clientes de prueba."""
     cantidad = 0
     for nombre, email, telefono in CLIENTES_INICIALES:
-        if clientes.alta_cliente(nombre, email, telefono):
+        if clientes.alta_cliente(nombre, email, telefono, False):
             cantidad += 1
     return cantidad
 
 def cargar_peliculas(lista_peliculas):
     """Da de alta las peliculas de prueba en la lista recibida."""
     cantidad = 0
-    for id_pelicula, datos in enumerate(PELICULAS_INICIALES, start=1):
+    id_pelicula = 1
+
+    for datos in PELICULAS_INICIALES:
         titulo, genero, duracion, precio = datos
+
         if peliculas.agregar_pelicula(
             lista_peliculas,
             id_pelicula,
@@ -51,6 +54,9 @@ def cargar_peliculas(lista_peliculas):
             precio,
         ):
             cantidad += 1
+
+        id_pelicula += 1
+
     return cantidad
 
 def cargar_usuarios():
@@ -98,4 +104,6 @@ if __name__ == "__main__":
 
     print(f"\n--- Sala ({len(sala)} filas x {len(sala[0])} columnas) ---")
     for fila in sala:
-        print(" " + "   ".join(str(a) for a in fila))
+        for asiento in fila:
+            print(asiento, end="   ")
+        print()
