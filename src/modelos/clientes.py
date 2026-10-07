@@ -2,30 +2,12 @@
 
 import re
 
-from src.vista import (
-    VERDE,
-    imprimir_advertencia,
-    imprimir_error,
-    imprimir_exito,
-    imprimir_mensaje,
-    mostrar_tabla,
-)
+from src.vista import VERDE, imprimir_advertencia, imprimir_error, imprimir_exito, imprimir_mensaje, mostrar_tabla
 
+from src.validaciones import validar_email, validar_telefono
 
 lista_clientes = []
 emails_activos = set()
-
-
-
-def validar_email(email):
-    """Valida el formato de un email."""
-    patron = r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$"
-    return re.match(patron, email) is not None
-
-
-def validar_telefono(telefono):
-    """Valida que el telefono contenga solo digitos."""
-    return telefono.isdigit()
 
 
 def buscar_cliente(id_cliente):
@@ -44,18 +26,22 @@ def alta_cliente(nombre, email, telefono, mostrar_mensajes=True):
             imprimir_error("El nombre no puede estar vacio")
         return False
 
-    if not validar_email(email):
+    """Validaciones de email usando el modulo centralizado"""
+    es_valido, mensaje = validar_email(email)
+    if not es_valido:
         if mostrar_mensajes:
-            imprimir_error("Formato de email invalido")
+            imprimir_error(mensaje)
         return False
-
+    
     if email in emails_activos:
         if mostrar_mensajes:
             imprimir_error("Este email ya esta registrado")
         return False
 
-    if not validar_telefono(telefono) and mostrar_mensajes:
-        imprimir_advertencia("El telefono debe contener solo digitos")
+    """Validacion de telefono: si es que falla, se advierte pero no se rechaza"""
+    es_valido, mensaje = validar_telefono(telefono)
+    if not es_valido and mostrar_mensajes:
+        imprimir_advertencia(mensaje)
 
     nuevo_id = len(lista_clientes) + 1
 
@@ -99,8 +85,9 @@ def modificar_cliente(id_cliente, nombre=None, email=None, telefono=None):
         return False
 
     if email is not None:
-        if not validar_email(email):
-            imprimir_error("Formato de email invalido.")
+        es_valido, mensaje = validar_email(email)
+        if not es_valido:
+            imprimir_error(mensaje)
             return False
         if email != cliente["email"] and email in emails_activos:
             imprimir_error("El email ya esta registrado por otro cliente")
@@ -117,8 +104,9 @@ def modificar_cliente(id_cliente, nombre=None, email=None, telefono=None):
         cliente["nombre"] = nombre.strip()
 
     if telefono is not None:
-        if not validar_telefono(telefono):
-            imprimir_advertencia("El telefono debe contener solo digitos")
+        es_valido, mensaje = validar_telefono(telefono)
+        if not es_valido:
+            imprimir_advertencia(mensaje)
         cliente["telefono"] = telefono
 
     imprimir_exito(f"Cliente ID {id_cliente} modificado correctamente")
@@ -130,6 +118,13 @@ def listar_clientes(mostrar_inactivos=False):
     if mostrar_inactivos:
         return [cliente.copy() for cliente in lista_clientes]
     return [cliente.copy() for cliente in lista_clientes if cliente["estado"]]
+
+
+def listar_clientes_paginado(inicio=0, fin=None):
+    """Devuelve una porcion de la lista de clientes usando slicing."""
+    if fin is None:
+        return lista_clientes[inicio:]
+    return lista_clientes[inicio:fin]
 
 
 def mostrar_clientes(mostrar_inactivos=False):
@@ -180,6 +175,11 @@ def clientes_activos_conjunto():
             ids_activos.add(cliente["id"])
 
     return ids_activos
+
+
+def obtener_tickets_de_clientes(id_cliente, tickets):
+    """Devuelve todos los tickets asociados a un cliente."""
+    return list(filter(lambda t: t["cliente_id"] == id_cliente, tickets))
 
 
 if __name__ == "__main__":
