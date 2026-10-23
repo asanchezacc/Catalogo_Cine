@@ -41,6 +41,19 @@ def imprimir_advertencia(texto):
     imprimir_mensaje(f"ADVERTENCIA: {texto}", AMARILLO)
 
 
+def imprimir_linea_recursiva(ancho):
+    """Imprime guiones usando recursividad."""
+    try:
+        if ancho == 0:
+            print(RESET) # Salto de linea y reseteo de color
+        else:
+            print("-", end="")
+            # Reduccion de dominio
+            imprimir_linea_recursiva(ancho - 1)
+    except RecursionError:
+        imprimir_error("Se supero el limite de recursion en la linea.")
+
+
 # FUNCIONES LAMBDA PARA DAR FORMATO A VALORES
 formatear_precio = lambda p: f"${p:.2f}"
 formatear_estado = lambda activo: "Activo" if activo else "Inactivo"
@@ -61,7 +74,8 @@ def mostrar_tabla(datos, columnas, con_encabezado=True):
 
         # Linea separadora de ancho dinamico segun las columnas
         ancho_total = sum(ancho + 1 for _, _, ancho in columnas)
-        print(f"{'-' * ancho_total}{RESET}")
+        print(CYAN, end="")
+        imprimir_linea_recursiva(ancho_total)
 
     for fila in datos:
         for etiqueta, clave, ancho in columnas:
@@ -102,7 +116,8 @@ def mostrar_matriz(matriz, encabezados=None, anchos=None, ancho=20):
         for i, titulo in enumerate(encabezados):
             print(f"{titulo.upper():<{anchos[i]}}", end="")
         print()
-        print(f"{CYAN}{'-' * sum(anchos)}{RESET}")
+        print(CYAN, end="")
+        imprimir_linea_recursiva(sum(anchos))
 
     for fila in matriz:
         for i, valor in enumerate(fila):
@@ -159,7 +174,7 @@ def mostrar_sala(sala, titulo="SALA"):
 
 
 def mostrar_sala_con_tickets(sala, tickets, titulo="SALA - OCUPACION"):
-    """Igual que mostrar_sala, pero marca cada asiento ocupado con el IDdel cliente que hizo la reserva."""
+    """Igual que mostrar_sala, pero marca cada asiento ocupado con el ID del cliente que hizo la reserva."""
     if not sala or not sala[0]:
         imprimir_advertencia("La sala está vacía.")
         return
