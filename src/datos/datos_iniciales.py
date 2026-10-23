@@ -1,7 +1,8 @@
 """
 Datos iniciales del sistema.
-Carga de clientes, peliculas y usuarios de prueba al arranca el programa.
+Carga de clientes, peliculas y usuarios de prueba al arrancar el programa.
 """
+import os
 
 from src.modelos import clientes, usuarios
 from src.funciones import peliculas, asientos
@@ -45,14 +46,7 @@ def cargar_peliculas(lista_peliculas):
     for datos in PELICULAS_INICIALES:
         titulo, genero, duracion, precio = datos
 
-        if peliculas.agregar_pelicula(
-            lista_peliculas,
-            id_pelicula,
-            titulo,
-            genero,
-            duracion,
-            precio,
-        ):
+        if peliculas.agregar_pelicula(lista_peliculas, id_pelicula, titulo, genero, duracion, precio):
             cantidad += 1
 
         id_pelicula += 1
@@ -69,11 +63,20 @@ def cargar_usuarios():
     return cantidad
 
 def cargar_datos(lista_peliculas):
-    """Carga todos los datos iniciales y crea la sala."""
+    """Carga todos los datos iniciales y crea la sala, usando JSON si ya existen."""
     imprimir_encabezado("Cargando datos")
 
-    n_clientes = cargar_clientes()
-    imprimir_mensaje(f"Clientes cargados: {n_clientes}", CYAN)
+    ruta_clientes = "src/datos/clientes.json"
+    
+    if not os.path.exists(ruta_clientes):
+        # Si el archivo no existe, es la primera vez.
+        n_clientes = cargar_clientes()
+        clientes.guardar_clientes() # Guarda el archivo JSON
+        imprimir_mensaje(f"Clientes iniciales creados: {n_clientes}", CYAN)
+    else:
+        # Si ya existe, los leemos del JSON (no los volvemos a crear).
+        clientes.cargar_clientes_desde_json()
+        imprimir_mensaje(f"Clientes cargados desde JSON: {len(clientes.lista_clientes)}", CYAN)
 
     n_peliculas = cargar_peliculas(lista_peliculas)
     imprimir_mensaje(f"Peliculas cargadas: {n_peliculas}", CYAN)
@@ -85,25 +88,3 @@ def cargar_datos(lista_peliculas):
     imprimir_mensaje(f"Sala creada: {SALA_FILAS}x{SALA_COLUMNAS}", CYAN)
 
     return sala
-
-if __name__ == "__main__":
-    lista_peliculas = []
-    sala = cargar_datos(lista_peliculas)
-
-    print("\n--- Clientes ---")
-    for c in clientes.listar_clientes():
-        print(f"ID {c['id']:>2} | {c['nombre']:<20} | {c['email']}")
-
-    print("\n--- Peliculas ---")
-    for p in peliculas.listar_peliculas(lista_peliculas):
-        print(f"ID {p['id']:>2} | {p['titulo']:<30} | ${p['precio']}")
-
-    print("\n--- Usuarios ---")
-    for u in usuarios.usuarios:
-        print(f"ID {u['id']:>2} | {u['usuario']:<12} | rol: {u['rol']}")
-
-    print(f"\n--- Sala ({len(sala)} filas x {len(sala[0])} columnas) ---")
-    for fila in sala:
-        for asiento in fila:
-            print(asiento, end="   ")
-        print()
