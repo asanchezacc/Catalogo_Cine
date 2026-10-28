@@ -1,13 +1,64 @@
-"""CRUD de clientes."""
+"""
+CRUD de clientes.
+Con JSON y recursividad.
+"""
 
 import re
-
+import json
+import os
 from src.vista import VERDE, imprimir_advertencia, imprimir_error, imprimir_exito, imprimir_mensaje, mostrar_tabla
 
 from src.validaciones import validar_email, validar_telefono
 
 lista_clientes = []
 emails_activos = set()
+ARCHIVO_CLIENTES = "src/datos/clientes.json"
+
+
+def guardar_clientes():
+    """Guarda la lista de clientes en el archivo JSON."""
+    try:
+        with open(ARCHIVO_CLIENTES, 'w', encoding="UTF-8") as archivo:
+            # ensure_ascii=False para que guarde tildes y ñ correctamente
+            json.dump(lista_clientes, archivo, ensure_ascii=False, indent=4)
+    except Exception as e:
+        imprimir_error(f"No se pudo guardar el archivo de clientes: {e}")
+
+
+def cargar_clientes_desde_json():
+    """Carga los clientes desde el archivo JSON al arrancar el sistema."""
+    global lista_clientes, emails_activos
+    try:
+        with open(ARCHIVO_CLIENTES, 'r', encoding="UTF-8") as archivo:
+            lista_clientes = json.load(archivo)
+            # Reconstruimos el conjunto de emails para validar duplicados
+            emails_activos = {c["email"] for c in lista_clientes}
+    except FileNotFoundError:
+        # Si el archivo no existe, arranca con listas vacias
+        lista_clientes = []
+        emails_activos = set()
+    except json.JSONDecodeError:
+        imprimir_error("El archivo de clientes esta dañado o mal formateado.")
+        lista_clientes = []
+        emails_activos = set()
+
+
+def sumar_digitos_telefono_recursivo(telefono):
+    """Suma los dígitos de un teléfono de forma recursiva."""
+    if len(telefono) == 0:
+        return 0
+    
+    if telefono[0].isdigit():
+        return int(telefono[0]) + sumar_digitos_telefono_recursivo(telefono[1:])
+    
+    return sumar_digitos_telefono_recursivo(telefono[1:])
+
+
+def contar_clientes_recursivo(clientes, i=0):
+    """Cuenta los clientes en la lista de forma recursiva."""
+    if i == len(clientes):
+        return 0
+    return 1 + contar_clientes_recursivo(clientes, i + 1)
 
 
 def buscar_cliente(id_cliente):
@@ -19,7 +70,7 @@ def buscar_cliente(id_cliente):
 
 
 def alta_cliente(nombre, email, telefono, mostrar_mensajes=True):
-    """Agrega un cliente si sus datos basicos son validos."""
+    """Agrega un cliente, lo guarda en JSON y actualiza los conjuntos."""
 
     if not nombre.strip():
         if mostrar_mensajes:
@@ -39,9 +90,9 @@ def alta_cliente(nombre, email, telefono, mostrar_mensajes=True):
         return False
 
     """Validacion de telefono: si es que falla, se advierte pero no se rechaza"""
-    es_valido, mensaje = validar_telefono(telefono)
-    if not es_valido and mostrar_mensajes:
-        imprimir_advertencia(mensaje)
+    es_valido_tel, mensaje_tel = validar_telefono(telefono)
+    if not es_valido_tel and mostrar_mensajes:
+        imprimir_advertencia(mensaje_tel)
 
     nuevo_id = len(lista_clientes) + 1
 
@@ -55,6 +106,9 @@ def alta_cliente(nombre, email, telefono, mostrar_mensajes=True):
 
     lista_clientes.append(cliente)
     emails_activos.add(email)
+    
+    # Guardamos en el archivo JSON
+    guardar_clientes()
 
     if mostrar_mensajes:
         imprimir_exito(f"Cliente '{nombre}' dado de alta con ID {cliente['id']}")
@@ -63,7 +117,7 @@ def alta_cliente(nombre, email, telefono, mostrar_mensajes=True):
 
 
 def baja_cliente(id_cliente):
-    """Realiza la baja logica de un cliente."""
+    """Realiza la baja logica de un cliente y guarda el cambio en JSON."""
     cliente = buscar_cliente(id_cliente)
     if cliente is None:
         imprimir_error(f"No existe cliente con ID {id_cliente}")
@@ -73,12 +127,13 @@ def baja_cliente(id_cliente):
         return True
 
     cliente["estado"] = False
+    guardar_clientes() # Guardamos en JSON
     imprimir_exito(f"Cliente ID {id_cliente} dado de baja")
     return True
 
 
 def modificar_cliente(id_cliente, nombre=None, email=None, telefono=None):
-    """Modifica los datos recibidos de un cliente existente."""
+    """Modifica los datos de un cliente y guarda el cambio en JSON."""
     cliente = buscar_cliente(id_cliente)
     if cliente is None:
         imprimir_error(f"No existe cliente con ID {id_cliente}")
@@ -109,6 +164,7 @@ def modificar_cliente(id_cliente, nombre=None, email=None, telefono=None):
             imprimir_advertencia(mensaje)
         cliente["telefono"] = telefono
 
+    guardar_clientes() # Guardamos en JSON
     imprimir_exito(f"Cliente ID {id_cliente} modificado correctamente")
     return True
 
@@ -177,7 +233,7 @@ def clientes_activos_conjunto():
     return ids_activos
 
 
-def obtener_tickets_de_clientes(id_cliente, tickets):
+def obtener_tickets_de_cliente(id_cliente, tickets):
     """Devuelve todos los tickets asociados a un cliente."""
     return list(filter(lambda t: t["cliente_id"] == id_cliente, tickets))
 
@@ -188,3 +244,9 @@ if __name__ == "__main__":
     alta_cliente("Tomas Moran", "tomasmoran@email.com", "1166778899")
     alta_cliente("Juan Cruz Iocco", "juaniocco@email.com", "1144556677")
     mostrar_clientes()
+
+    # Prueba de recursividad
+    print(f"\nSuma de digitos del tel 12345: {sumar_digitos_telefono_recursivo('12345')}")
+    print(f"Clientes contados recursivamente: {contar_clientes_recursivo(lista_clientes)}")
+    
+    print(f"\nSlicing (primeros 1): {listar_clientes_paginado(0, 1)}")
