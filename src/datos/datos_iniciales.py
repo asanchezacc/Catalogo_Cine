@@ -46,7 +46,14 @@ def cargar_peliculas(lista_peliculas):
     for datos in PELICULAS_INICIALES:
         titulo, genero, duracion, precio = datos
 
-        if peliculas.agregar_pelicula(lista_peliculas, id_pelicula, titulo, genero, duracion, precio):
+        if peliculas.agregar_pelicula(
+            lista_peliculas,
+            id_pelicula,
+            titulo,
+            genero,
+            duracion,
+            precio,
+        ):
             cantidad += 1
 
         id_pelicula += 1

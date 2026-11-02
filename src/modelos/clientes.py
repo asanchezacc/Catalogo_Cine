@@ -94,6 +94,8 @@ def alta_cliente(nombre, email, telefono, mostrar_mensajes=True):
     if not es_valido_tel and mostrar_mensajes:
         imprimir_advertencia(mensaje_tel)
 
+
+
     nuevo_id = len(lista_clientes) + 1
 
     cliente = {
