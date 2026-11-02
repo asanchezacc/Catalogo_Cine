@@ -3,10 +3,11 @@
 from src.funciones import tickets, asientos
 
 
-RUTA_PRUEBA = "tickets_integracion_pytest.txt"
+RUTA_PRUEBA = "tickets_integracion_pytest.json"
 
 
 def preparar_prueba():
+
     ruta_original = tickets.ARCHIVO_TICKETS
     tickets_originales = [ticket.copy() for ticket in tickets.tickets_registrados]
 
@@ -20,11 +21,13 @@ def preparar_prueba():
 
 
 def restaurar_prueba(ruta_original, tickets_originales):
+
     tickets.ARCHIVO_TICKETS = ruta_original
     tickets.tickets_registrados[:] = tickets_originales
 
 
 def test_reinicio_recupera_asientos():
+
     ruta, anteriores = preparar_prueba()
     try:
         exito, id_1 = tickets.crear_ticket(1, 2, (0, 0), 2500, 1)
@@ -57,6 +60,7 @@ def test_reinicio_recupera_asientos():
 
 
 def test_reinicio_detecta_duplicados():
+    
     ruta, anteriores = preparar_prueba()
     try:
         assert tickets.crear_ticket(1, 2, (0, 0), 2500, 1)[0] is True
