@@ -144,3 +144,15 @@ def test_clientes_para_tabla_no_modifica_originales():
     # Las originales siguen con True/False
     assert lista[0]["estado"] is True
     assert lista[1]["estado"] is False
+
+
+def test_recortar_titulo_igual_que_peliculas():
+    largo = "a" * 60
+    assert menu.recortar_titulo(largo) == "a" * 47 + "..."
+    assert menu.recortar_titulo("Supergirl") == "Supergirl"
+
+
+def test_titulo_repetido_con_titulo_largo():
+    largo = "Una pelicula con un titulo larguisimo que supera los cincuenta caracteres"
+    lista = [{"id": 1, "titulo": menu.recortar_titulo(largo)}]
+    assert menu.titulo_repetido(largo, lista) is True

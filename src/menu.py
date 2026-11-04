@@ -207,13 +207,15 @@ def linea_ticket(ticket):
     pelicula = peliculas.obtener_pelicula(PELICULAS, ticket["pelicula_id"])
     nombre = "?"
     if cliente is not None:
-        nombre = cliente["nombre"]
+        # Slicing para que el nombre y el título no se pasen de su columna
+        nombre = cliente["nombre"][:19]
     titulo = "?"
     if pelicula is not None:
-        titulo = pelicula["titulo"]
+        titulo = pelicula["titulo"][:24]
     fila, columna = ticket["asiento"]
-    return (f"#{ticket['id']:<4}{nombre:<20}{titulo:<25}"
-            f"fila {fila} col {columna}  ${ticket['precio']:>9.2f}  {ticket['estado']}")
+    linea = f"#{ticket['id']:<4}{nombre:<20}{titulo:<25}"
+    linea = linea + f"fila {fila} col {columna}  ${ticket['precio']:>9.2f}  {ticket['estado']}"
+    return linea
 
 
 def mostrar_lista_tickets(lista):
@@ -269,12 +271,24 @@ def proximo_id_pelicula(lista_peliculas):
     return max(ids) + 1
 
 
+def recortar_titulo(titulo):
+    """
+    Recorta el título igual que peliculas.py al guardarlo:
+    si tiene más de 50 caracteres, deja los primeros 47 y agrega "...".
+    """
+    if len(titulo) > 50:
+        return titulo[:47] + "..."
+    return titulo
+
+
 def titulo_repetido(titulo, lista_peliculas, id_excluido=None):
     """
     pre: recibe un título, la lista de películas y opcionalmente el ID de una
     película que no se tiene en cuenta (la que se está modificando).
     pos: devuelve True si otra película ya tiene ese título (sin importar mayúsculas).
+    Compara el título ya recortado, porque así queda guardado.
     """
+    titulo = recortar_titulo(titulo)
     for pelicula in lista_peliculas:
         if pelicula["id"] != id_excluido and pelicula["titulo"].lower() == titulo.lower():
             return True
@@ -300,9 +314,10 @@ def accion_alta_pelicula():
         return
     id_pelicula = proximo_id_pelicula(PELICULAS)
     if peliculas.agregar_pelicula(PELICULAS, id_pelicula, titulo, genero, duracion, precio):
-        imprimir_exito(f"Película '{titulo}' agregada con ID {id_pelicula}.")
+        imprimir_exito(f"Película '{recortar_titulo(titulo)}' agregada con ID {id_pelicula}.")
     else:
-        imprimir_error("Ya existe una película con ese ID.")
+        # El ID siempre es nuevo, así que si falla es porque no se pudo guardar el JSON
+        imprimir_error("No se pudo guardar la película en el archivo.")
 
 
 def accion_modificar_pelicula():
@@ -332,13 +347,18 @@ def accion_modificar_pelicula():
     if titulo == None and genero == None and duracion == None and precio == None:
         print("No se cambió ningún dato.")
         return
-    peliculas.actualizar_pelicula(PELICULAS, id_pelicula, titulo, genero, duracion, precio)
-    imprimir_exito(f"Película ID {id_pelicula} modificada.")
+    if peliculas.actualizar_pelicula(PELICULAS, id_pelicula, titulo, genero, duracion, precio):
+        imprimir_exito(f"Película ID {id_pelicula} modificada.")
+    else:
+        imprimir_error("No se pudo guardar el cambio en el archivo.")
 
 
 def accion_baja_pelicula():
     accion_ver_catalogo()
     id_pelicula = pedir_entero("ID de la película a dar de baja: ")
+    if peliculas.obtener_pelicula(PELICULAS, id_pelicula) is None:
+        imprimir_error("Esa película no está en el catálogo.")
+        return
     activos = tickets_activos_de_pelicula(id_pelicula, tickets.tickets_registrados)
     if len(activos) > 0:
         imprimir_error(f"No se puede dar de baja: tiene {len(activos)} ticket(s) pendientes o cobrados.")
@@ -346,7 +366,7 @@ def accion_baja_pelicula():
     if peliculas.eliminar_pelicula(PELICULAS, id_pelicula):
         imprimir_exito(f"Película ID {id_pelicula} eliminada del catálogo.")
     else:
-        imprimir_error("Esa película no está en el catálogo.")
+        imprimir_error("No se pudo guardar el cambio en el archivo.")
 
 
 def accion_crear_ticket(usuario_actual, sala):
@@ -436,7 +456,7 @@ def mostrar_grilla_sala(sala):
     columnas = len(sala[0])
 
     imprimir_encabezado("Sala")
-    print(f"{'PANTALLA':^{6 + columnas * 3}}")
+    print("PANTALLA".center(6 + columnas * 3))
     for linea in armar_grilla_sala(mapa, filas, columnas):
         print(linea)
     print("  - Libre    X Ocupado")
