@@ -276,6 +276,7 @@ def accion_crear_ticket(usuario_actual, sala):
     if pelicula is None:
         imprimir_error("Esa película no está en el catálogo.")
         return
+    mostrar_grilla_sala(sala)
     fila = pedir_entero(f"Fila del asiento (0 a {len(sala)-1}): ")
     columna = pedir_entero(f"Columna del asiento (0 a {len(sala[0])-1}): ")
 
@@ -312,14 +313,49 @@ def accion_imprimir_ticket():
     print(f"Estado: {datos['estado']}")
 
 
-def accion_ver_asientos_ocupados(sala):
-    ocupados = empleados.asientos_ocupados(sala)
-    if not ocupados:
-        print("No hay asientos ocupados.")
+def armar_grilla_sala(mapa, filas, columnas):
+    """
+    pre: recibe el diccionario de mapa_ocupacion ({(fila, columna): "Libre"/"Ocupado"})
+    y la cantidad de filas y columnas de la sala.
+    pos: devuelve una lista de cadenas, una por cada línea de la grilla.
+    Usa los mismos números de fila y columna que se piden al reservar.
+    """
+    lineas = []
+    encabezado = "      "
+    for columna in range(columnas):
+        encabezado += f"{columna:>3}"
+    lineas.append(encabezado)
+
+    for fila in range(filas):
+        linea = f"Fila {fila}"
+        for columna in range(columnas):
+            if mapa[(fila, columna)] == "Ocupado":
+                linea += "  X"
+            else:
+                linea += "  -"
+        lineas.append(linea)
+    return lineas
+
+
+def mostrar_grilla_sala(sala):
+    """Muestra la sala como una grilla usando mapa_ocupacion."""
+    if len(sala) == 0:
+        imprimir_error("La sala no tiene asientos.")
         return
-    print("Asientos ocupados:")
-    for fila, columna in sorted(ocupados):
-        print(f"Fila {fila}, columna {columna}")
+    mapa = empleados.mapa_ocupacion(sala)
+    filas = len(sala)
+    columnas = len(sala[0])
+
+    imprimir_encabezado("Sala")
+    print(f"{'PANTALLA':^{6 + columnas * 3}}")
+    for linea in armar_grilla_sala(mapa, filas, columnas):
+        print(linea)
+    print("  - Libre    X Ocupado")
+    print(f"Asientos libres: {asientos.contar_asientos_libres(sala)}")
+
+
+def accion_ver_asientos_ocupados(sala):
+    mostrar_grilla_sala(sala)
 
 
 def accion_buscar_pelicula():
@@ -412,7 +448,7 @@ def menu_empleado(usuario_actual, sala):
         print("7. Cancelar reserva")
         print("8. Imprimir ticket")
         print("9. Ver todos los tickets")
-        print("10. Asientos ocupados")
+        print("10. Ver sala (asientos ocupados)")
         print("11. Buscar pelicula por titulo")
         print("12. Actualizar cliente")
         print("13. Ver clientes registrados")

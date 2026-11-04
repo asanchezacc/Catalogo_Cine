@@ -76,3 +76,14 @@ def test_tickets_de_pelicula_filtra_por_id():
 def test_proximo_id_pelicula():
     assert menu.proximo_id_pelicula([]) == 1
     assert menu.proximo_id_pelicula([{"id": 1}, {"id": 4}, {"id": 2}]) == 5
+
+
+# ------------------ Grilla de la sala ------------------
+
+def test_armar_grilla_sala_marca_ocupados():
+    mapa = {(0, 0): "Libre", (0, 1): "Ocupado", (1, 0): "Libre", (1, 1): "Libre"}
+    lineas = menu.armar_grilla_sala(mapa, 2, 2)
+    assert len(lineas) == 3
+    assert lineas[0] == "        0  1"
+    assert lineas[1] == "Fila 0  -  X"
+    assert lineas[2] == "Fila 1  -  -"
