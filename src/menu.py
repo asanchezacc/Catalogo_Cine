@@ -303,8 +303,12 @@ def accion_baja_pelicula():
 def accion_crear_ticket(usuario_actual, sala):
     empleado = usuarios.buscar_usuario(usuario_actual)
     id_cliente = pedir_entero("ID del cliente: ")
-    if empleados.ver_cliente(id_cliente) is None:
+    cliente = empleados.ver_cliente(id_cliente)
+    if cliente is None:
         imprimir_error("No existe un cliente con ese ID.")
+        return
+    if cliente["estado"] == False:
+        imprimir_error("Ese cliente está dado de baja. No se le pueden hacer reservas.")
         return
     accion_ver_catalogo()
     id_pelicula = pedir_entero("ID de la película: ")
