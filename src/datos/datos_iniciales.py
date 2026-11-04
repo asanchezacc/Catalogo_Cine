@@ -75,7 +75,12 @@ def cargar_datos(lista_peliculas):
     """Carga todos los datos iniciales y crea la sala, usando JSON si ya existen."""
     imprimir_encabezado("Cargando datos")
 
-    if not clientes.cargar_clientes_desde_json():
+    # Intentamos cargar los clientes del JSON. Si el archivo no existe, 
+    # el try/except interno de clientes.py lo maneja y devuelve una lista vacía.
+    clientes.cargar_clientes_desde_json()
+    
+    if len(clientes.lista_clientes) == 0:
+        # Es la primera vez (no había JSON o estaba vacío)
         n_clientes = cargar_clientes()
         clientes.guardar_clientes() # Guarda el archivo JSON
         imprimir_mensaje(f"Clientes iniciales creados: {n_clientes}", CYAN)

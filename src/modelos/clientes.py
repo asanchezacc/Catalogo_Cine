@@ -5,7 +5,6 @@ Con JSON y recursividad.
 
 import re
 import json
-import os
 from src.vista import VERDE, imprimir_advertencia, imprimir_error, imprimir_exito, imprimir_mensaje, mostrar_tabla
 
 from src.validaciones import validar_email, validar_telefono
