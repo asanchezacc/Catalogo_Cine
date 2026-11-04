@@ -219,6 +219,11 @@ def tickets_de_pelicula(id_pelicula, lista_tickets):
     return list(filter(lambda t: t["pelicula_id"] == id_pelicula, lista_tickets))
 
 
+def tickets_activos_de_pelicula(id_pelicula, lista_tickets):
+    """Devuelve los tickets pendientes o cobrados de una película (no los cancelados)."""
+    return list(filter(lambda t: t["estado"] != "cancelado", tickets_de_pelicula(id_pelicula, lista_tickets)))
+
+
 def accion_ver_tickets_de_cliente():
     id_cliente = pedir_entero("ID del cliente: ")
     cliente = empleados.ver_cliente(id_cliente)
@@ -294,6 +299,10 @@ def accion_modificar_pelicula():
 def accion_baja_pelicula():
     accion_ver_catalogo()
     id_pelicula = pedir_entero("ID de la película a dar de baja: ")
+    activos = tickets_activos_de_pelicula(id_pelicula, tickets.tickets_registrados)
+    if len(activos) > 0:
+        imprimir_error(f"No se puede dar de baja: tiene {len(activos)} ticket(s) pendientes o cobrados.")
+        return
     if peliculas.eliminar_pelicula(PELICULAS, id_pelicula):
         imprimir_exito(f"Película ID {id_pelicula} eliminada del catálogo.")
     else:

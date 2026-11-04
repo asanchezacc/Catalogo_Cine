@@ -95,3 +95,17 @@ def test_titulos_de_ids():
     lista = [{"id": 1, "titulo": "A"}, {"id": 2, "titulo": "B"}, {"id": 3, "titulo": "C"}]
     assert menu.titulos_de_ids({1, 3}, lista) == ["A", "C"]
     assert menu.titulos_de_ids(set(), lista) == []
+
+
+def test_tickets_activos_de_pelicula_ignora_cancelados():
+    lista = [
+        {"id": 1, "pelicula_id": 2, "estado": "pendiente"},
+        {"id": 2, "pelicula_id": 2, "estado": "cancelado"},
+        {"id": 3, "pelicula_id": 2, "estado": "cobrado"},
+        {"id": 4, "pelicula_id": 5, "estado": "pendiente"},
+    ]
+    activos = menu.tickets_activos_de_pelicula(2, lista)
+    assert len(activos) == 2
+    assert activos[0]["id"] == 1
+    assert activos[1]["id"] == 3
+    assert menu.tickets_activos_de_pelicula(9, lista) == []
