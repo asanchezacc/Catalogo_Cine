@@ -1,3 +1,4 @@
+
 from functools import reduce
 
 
@@ -46,3 +47,125 @@ def resumen_estadisticas(tickets):
         "porcentaje_cobrados": porcentaje_por_estado(tickets, "cobrado"),
         "total_recaudado": total_recaudado(tickets),
     }
+
+
+
+def peliculas_mas_y_menos_vendidas(peliculas, tickets):
+
+    """
+    Devuelve la pelicula mas y menos vendida segun tickets cobrados.
+    """
+
+
+    if not peliculas:
+        return None, None
+
+    ventas = []
+
+    for pelicula in peliculas:
+        cantidad = 0
+
+        for ticket in tickets:
+            if (ticket["pelicula_id"] == pelicula["id"]
+                    and ticket["estado"] == "cobrado"):
+                cantidad += 1
+
+        ventas.append((pelicula["titulo"], cantidad))
+
+    mas_vendida = max(ventas, key=lambda dato: dato[1])
+    menos_vendida = min(ventas, key=lambda dato: dato[1])
+
+    return mas_vendida, menos_vendida
+
+
+
+
+def promedio_precio_por_genero(peliculas):
+
+    """
+    Calcula el precio promedio de las peliculas por genero.
+    """
+
+
+    totales = {}
+    cantidades = {}
+
+    for pelicula in peliculas:
+        genero = pelicula["genero"]
+
+        if genero not in totales:
+            totales[genero] = 0
+            cantidades[genero] = 0
+
+        totales[genero] += pelicula["precio"]
+        cantidades[genero] += 1
+
+    promedios = {}
+
+    for genero in totales:
+        promedios[genero] = totales[genero] / cantidades[genero]
+
+    return promedios
+
+
+
+def clasificar_peliculas_por_ventas(peliculas, tickets):
+
+    """
+    Devuelve los IDs de peliculas con ventas y sin ventas.
+    """
+
+    ids_catalogo = set()
+    ids_vendidos = set()
+
+    # Guardamos todos los IDs del catalogo
+    for pelicula in peliculas:
+        ids_catalogo.add(pelicula["id"])
+
+    # Guardamos los IDs de peliculas con tickets cobrados
+    for ticket in tickets:
+        if ticket["estado"] == "cobrado":
+            ids_vendidos.add(ticket["pelicula_id"])
+
+    # Interseccion: peliculas existentes con ventas
+    con_ventas = ids_catalogo & ids_vendidos
+
+    # Diferencia: peliculas sin ventas
+    sin_ventas = ids_catalogo - ids_vendidos
+
+    return con_ventas, sin_ventas
+
+
+
+
+def ranking_peliculas_mas_vendidas(peliculas, tickets, cantidad=3):
+
+    """
+    Devuelve las primeras peliculas ordenadas por ventas.
+    """
+
+
+    if cantidad <= 0:
+        return []
+
+    ventas = []
+
+    for pelicula in peliculas:
+        cobrados = 0
+
+        for ticket in tickets:
+            if (ticket["pelicula_id"] == pelicula["id"]
+                    and ticket["estado"] == "cobrado"):
+                cobrados += 1
+
+        ventas.append((pelicula["titulo"], cobrados))
+
+    # Ordenamos de mayor a menor cantidad de ventas
+
+    ventas.sort(key=lambda dato: dato[1], reverse=True)
+
+    # Devolvemos solo los primeros resultados
+
+    return ventas[:cantidad]
+
+

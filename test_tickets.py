@@ -3,11 +3,13 @@
 from src.funciones import tickets
 
 
-RUTA_PRUEBA = "tickets_pruebas_pytest.txt"
+RUTA_PRUEBA = "tickets_pruebas_pytest.json"
 
 
 def preparar_prueba():
+
     """Usa un archivo separado y guarda el estado original del modulo."""
+
     ruta_original = tickets.ARCHIVO_TICKETS
     tickets_originales = [ticket.copy() for ticket in tickets.tickets_registrados]
 
@@ -22,7 +24,9 @@ def preparar_prueba():
 
 
 def restaurar_prueba(ruta_original, tickets_originales):
+
     """Restaura la ruta y los tickets que habia antes del test."""
+
     tickets.ARCHIVO_TICKETS = ruta_original
     tickets.tickets_registrados[:] = tickets_originales
 
@@ -45,6 +49,7 @@ def test_crear_y_recuperar_ticket():
 
 
 def test_cobrar_ticket():
+
     ruta, anteriores = preparar_prueba()
     try:
         assert tickets.crear_ticket(1, 2, (0, 3), 2500, 1)[0] is True
@@ -58,6 +63,7 @@ def test_cobrar_ticket():
 
 
 def test_cancelar_ticket():
+
     ruta, anteriores = preparar_prueba()
     try:
         assert tickets.crear_ticket(1, 2, (0, 3), 2500, 1)[0] is True
@@ -71,6 +77,7 @@ def test_cancelar_ticket():
 
 
 def test_archivo_danado():
+
     ruta, anteriores = preparar_prueba()
     try:
         assert tickets.crear_ticket(1, 2, (0, 3), 2500, 1)[0] is True
@@ -85,6 +92,7 @@ def test_archivo_danado():
 
 
 def test_error_guardado_al_crear():
+
     ruta, anteriores = preparar_prueba()
     try:
         # Intentar escribir sobre una carpeta produce un error de archivo.
@@ -97,6 +105,7 @@ def test_error_guardado_al_crear():
 
 
 def test_error_guardado_al_cobrar():
+
     ruta, anteriores = preparar_prueba()
     try:
         assert tickets.crear_ticket(1, 2, (0, 3), 2500, 1)[0] is True
@@ -110,6 +119,7 @@ def test_error_guardado_al_cobrar():
 
 
 def test_error_guardado_al_cancelar():
+
     ruta, anteriores = preparar_prueba()
     try:
         assert tickets.crear_ticket(1, 2, (0, 3), 2500, 1)[0] is True
@@ -120,3 +130,26 @@ def test_error_guardado_al_cancelar():
         assert tickets.obtener_ticket(1)["estado"] == "pendiente"
     finally:
         restaurar_prueba(ruta, anteriores)
+
+
+
+def test_recaudacion_recursiva():
+
+    lista = [
+        {"estado": "cobrado", "precio": 2500},
+        {"estado": "pendiente", "precio": 3000},
+        {"estado": "cobrado", "precio": 4000},
+        {"estado": "cancelado", "precio": 2000}
+    ]
+
+    total = tickets.sumar_recaudacion_recursiva(lista)
+
+    assert total == 6500
+
+
+
+def test_recaudacion_lista_vacia():
+
+    total = tickets.sumar_recaudacion_recursiva([])
+
+    assert total == 0

@@ -1,3 +1,7 @@
+
+import json
+
+
 tickets_registrados = []
 
 
@@ -127,74 +131,115 @@ def cancelar_ticket(id_ticket):
 
 
 
-ARCHIVO_TICKETS = "src/datos/tickets.txt"
+
+ARCHIVO_TICKETS = "src/datos/tickets.json"
 
 
 def guardar_tickets():
 
-    """Guarda los tickets en un archivo de texto."""
+
+    """
+    Guarda los tickets en un archivo JSON.
+    """
+
 
     try:
         with open(ARCHIVO_TICKETS, "w", encoding="utf-8") as archivo:
-            for ticket in tickets_registrados:
-                fila, columna = ticket["asiento"]
-
-                campos = [
-                    ticket["id"],
-                    ticket["cliente_id"],
-                    ticket["pelicula_id"],
-                    fila,
-                    columna,
-                    ticket["precio"],
-                    ticket["empleado_id"],
-                    ticket["estado"]
-                ]
-
-                linea = "|".join(str(campo) for campo in campos)
-                archivo.write(linea + "\n")
+            json.dump(tickets_registrados, archivo, ensure_ascii=False, indent=4)
 
         return True, "Tickets guardados correctamente"
 
-    except OSError as error:
+    except (OSError, TypeError, ValueError) as error:
         return False, f"No se pudieron guardar los tickets: {error}"
 
 
 def cargar_tickets():
 
-    """Recupera los tickets guardados en el archivo de texto."""
+
+    """
+    Recupera tickets desde JSON y transforma los asientos en tuplas.
+    """
+
 
     cargados = []
+    ids = set()
 
     try:
         with open(ARCHIVO_TICKETS, "r", encoding="utf-8") as archivo:
-            for linea in archivo:
-                partes = linea.strip().split("|")
+            datos = json.load(archivo)
 
-                if len(partes) != 8:
-                    raise ValueError("Formato de ticket inválido")
+        if type(datos) != list:
+            raise ValueError("El archivo debe contener una lista de tickets")
 
-                id_ticket, id_cliente, id_pelicula, fila, columna, precio, empleado, estado = partes
+        for ticket in datos:
+            if type(ticket) != dict:
+                raise ValueError("Un ticket tiene un formato incorrecto")
 
-                if estado not in ("pendiente", "cobrado", "cancelado"):
-                    raise ValueError("Estado de ticket inválido")
+            for clave in ("id", "cliente_id", "pelicula_id", "asiento", "precio", "empleado_id", "estado"):
+                if clave not in ticket:
+                    raise ValueError(f"Falta el campo {clave} en un ticket")
 
-                cargados.append({
-                    "id": int(id_ticket),
-                    "cliente_id": int(id_cliente),
-                    "pelicula_id": int(id_pelicula),
-                    "asiento": (int(fila), int(columna)),
-                    "precio": float(precio),
-                    "empleado_id": int(empleado),
-                    "estado": estado
-                })
+            if type(ticket["id"]) != int or ticket["id"] <= 0 or ticket["id"] in ids:
+                raise ValueError("ID de ticket invalido o repetido")
+
+            ids.add(ticket["id"])
+
+            for campo in ("cliente_id", "pelicula_id", "empleado_id"):
+                if type(ticket[campo]) != int or ticket[campo] <= 0:
+                    raise ValueError(f"El campo {campo} no es valido")
+
+            if type(ticket["precio"]) not in (int, float) or ticket["precio"] <= 0:
+                raise ValueError("Precio de ticket invalido")
+
+            asiento = ticket["asiento"]
+
+            if type(asiento) != list or len(asiento) != 2:
+                raise ValueError("Asiento de ticket invalido")
+
+            fila, columna = asiento
+
+            if type(fila) != int or type(columna) != int or fila < 0 or columna < 0:
+                raise ValueError("Coordenadas de asiento invalidas")
+
+            if ticket["estado"] not in ("pendiente", "cobrado", "cancelado"):
+                raise ValueError("Estado de ticket invalido")
+
+            ticket_cargado = ticket.copy()
+            ticket_cargado["asiento"] = (fila, columna)
+
+            cargados.append(ticket_cargado)
 
     except FileNotFoundError:
-        return True, "Todavía no existe un archivo de tickets"
+        return True, "Todavia no existe un archivo de tickets"
 
-    except (OSError, ValueError) as error:
+    except (OSError, ValueError, TypeError) as error:
         return False, f"No se pudieron cargar los tickets: {error}"
 
     tickets_registrados[:] = cargados
+
     return True, f"Se cargaron {len(cargados)} tickets"
 
 
+
+
+def sumar_recaudacion_recursiva(lista_tickets, indice=0):
+
+
+    """
+    Calcula recursivamente el total de tickets cobrados.
+    """
+
+    # Caso base: llegamos al final de la lista
+    if indice >= len(lista_tickets):
+        return 0
+
+    ticket = lista_tickets[indice]
+
+    # Si esta cobrado, sumamos su precio
+    if ticket["estado"] == "cobrado":
+        return ticket["precio"] + sumar_recaudacion_recursiva(
+            lista_tickets, indice + 1
+        )
+
+    # Si no esta cobrado, seguimos sin sumarlo
+    return sumar_recaudacion_recursiva(lista_tickets, indice + 1)
