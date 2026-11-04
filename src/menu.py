@@ -212,8 +212,9 @@ def linea_ticket(ticket):
     if pelicula is not None:
         titulo = pelicula["titulo"]
     fila, columna = ticket["asiento"]
-    return (f"#{ticket['id']:<4}{nombre:<20}{titulo:<25}"
-            f"fila {fila} col {columna}  ${ticket['precio']:>9.2f}  {ticket['estado']}")
+    linea = f"#{ticket['id']:<4}{nombre:<20}{titulo:<25}"
+    linea = linea + f"fila {fila} col {columna}  ${ticket['precio']:>9.2f}  {ticket['estado']}"
+    return linea
 
 
 def mostrar_lista_tickets(lista):
@@ -436,7 +437,7 @@ def mostrar_grilla_sala(sala):
     columnas = len(sala[0])
 
     imprimir_encabezado("Sala")
-    print(f"{'PANTALLA':^{6 + columnas * 3}}")
+    print("PANTALLA".center(6 + columnas * 3))
     for linea in armar_grilla_sala(mapa, filas, columnas):
         print(linea)
     print("  - Libre    X Ocupado")
