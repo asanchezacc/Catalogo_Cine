@@ -3,12 +3,45 @@ CRUD de películas
 Funciones para agregar, leer, actualizar y eliminar películas
 """
 
+import json
+
+
+ARCHIVO_PELICULAS = "src/datos/peliculas.json"
+
+
+def guardar_peliculas(peliculas):
+    """Guarda el catálogo de películas en un archivo JSON."""
+    try:
+        with open(ARCHIVO_PELICULAS, "w", encoding="UTF-8") as archivo:
+            json.dump(peliculas, archivo, ensure_ascii=False, indent=4)
+    except (OSError, TypeError, json.JSONDecodeError):
+        return False
+    return True
+
+
+def cargar_peliculas_desde_json(peliculas):
+    """Carga el catálogo de películas desde un archivo JSON."""
+    try:
+        with open(ARCHIVO_PELICULAS, "r", encoding="UTF-8") as archivo:
+            datos = json.load(archivo)
+        if type(datos) != list:
+            return False
+        peliculas.clear()
+        peliculas.extend(datos)
+    except (FileNotFoundError, OSError, json.JSONDecodeError, TypeError):
+        return False
+    return True
+
 def agregar_pelicula(peliculas, id_pelicula, titulo, genero, duracion, precio):
     """Agrega una nueva película al catálogo si el ID no existe."""
     # Verificar si el ID ya existe
     for pelicula in peliculas:
         if pelicula["id"] == id_pelicula:
             return False
+
+    titulo = titulo.strip()
+    if len(titulo) > 50:
+        titulo = titulo[:47] + "..."
     
     # Crear diccionario con la película
     nueva_pelicula = {
@@ -20,6 +53,9 @@ def agregar_pelicula(peliculas, id_pelicula, titulo, genero, duracion, precio):
     }
     
     peliculas.append(nueva_pelicula)
+    if not guardar_peliculas(peliculas):
+        peliculas.pop()
+        return False
     return True
 
 
@@ -42,6 +78,13 @@ def actualizar_pelicula(peliculas, id_pelicula, titulo=None, genero=None, duraci
     
     if pelicula is None:
         return False
+
+    pelicula_original = pelicula.copy()
+
+    if titulo is not None:
+        titulo = titulo.strip()
+        if len(titulo) > 50:
+            titulo = titulo[:47] + "..."
     
     # Actualizar solo los campos no None
     if titulo is not None:
@@ -52,6 +95,10 @@ def actualizar_pelicula(peliculas, id_pelicula, titulo=None, genero=None, duraci
         pelicula["duracion"] = duracion
     if precio is not None:
         pelicula["precio"] = precio
+
+    if not guardar_peliculas(peliculas):
+        pelicula.update(pelicula_original)
+        return False
     
     return True
 
@@ -61,7 +108,10 @@ def eliminar_pelicula(peliculas, id_pelicula):
 
     for i in range(len(peliculas)):
         if peliculas[i]["id"] == id_pelicula:
-            peliculas.pop(i)
+            pelicula_eliminada = peliculas.pop(i)
+            if not guardar_peliculas(peliculas):
+                peliculas.insert(i, pelicula_eliminada)
+                return False
             return True
 
     return False

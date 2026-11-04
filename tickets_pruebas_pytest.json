@@ -1,0 +1,14 @@
+[
+    {
+        "id": 1,
+        "cliente_id": 1,
+        "pelicula_id": 2,
+        "asiento": [
+            0,
+            3
+        ],
+        "precio": 2500,
+        "empleado_id": 1,
+        "estado": "pendiente"
+    }
+]
