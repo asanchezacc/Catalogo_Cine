@@ -3,3 +3,7 @@ __pycache__/
 *.pyo
 *.pyd
 .DS_Store
+.pytest_cache/
+test_clientes_temporal.json
+tickets_integracion_pytest.json
+tickets_pruebas_pytest.json
