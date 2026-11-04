@@ -207,10 +207,11 @@ def linea_ticket(ticket):
     pelicula = peliculas.obtener_pelicula(PELICULAS, ticket["pelicula_id"])
     nombre = "?"
     if cliente is not None:
-        nombre = cliente["nombre"]
+        # Slicing para que el nombre y el título no se pasen de su columna
+        nombre = cliente["nombre"][:19]
     titulo = "?"
     if pelicula is not None:
-        titulo = pelicula["titulo"]
+        titulo = pelicula["titulo"][:24]
     fila, columna = ticket["asiento"]
     linea = f"#{ticket['id']:<4}{nombre:<20}{titulo:<25}"
     linea = linea + f"fila {fila} col {columna}  ${ticket['precio']:>9.2f}  {ticket['estado']}"
@@ -270,12 +271,24 @@ def proximo_id_pelicula(lista_peliculas):
     return max(ids) + 1
 
 
+def recortar_titulo(titulo):
+    """
+    Recorta el título igual que peliculas.py al guardarlo:
+    si tiene más de 50 caracteres, deja los primeros 47 y agrega "...".
+    """
+    if len(titulo) > 50:
+        return titulo[:47] + "..."
+    return titulo
+
+
 def titulo_repetido(titulo, lista_peliculas, id_excluido=None):
     """
     pre: recibe un título, la lista de películas y opcionalmente el ID de una
     película que no se tiene en cuenta (la que se está modificando).
     pos: devuelve True si otra película ya tiene ese título (sin importar mayúsculas).
+    Compara el título ya recortado, porque así queda guardado.
     """
+    titulo = recortar_titulo(titulo)
     for pelicula in lista_peliculas:
         if pelicula["id"] != id_excluido and pelicula["titulo"].lower() == titulo.lower():
             return True
@@ -301,7 +314,7 @@ def accion_alta_pelicula():
         return
     id_pelicula = proximo_id_pelicula(PELICULAS)
     if peliculas.agregar_pelicula(PELICULAS, id_pelicula, titulo, genero, duracion, precio):
-        imprimir_exito(f"Película '{titulo}' agregada con ID {id_pelicula}.")
+        imprimir_exito(f"Película '{recortar_titulo(titulo)}' agregada con ID {id_pelicula}.")
     else:
         imprimir_error("Ya existe una película con ese ID.")
 
