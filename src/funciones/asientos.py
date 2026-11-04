@@ -102,21 +102,71 @@ def liberar_asiento(sala, fila, columna):
 
 
 
-def contar_asientos_libres(sala):
+
+def contar_asientos_libres(sala, fila=0, columna=0):
+
 
     """
-    Recibe una matriz de asientos con estados 0 y 1.
-    Devuelve la cantidad de asientos cuyo estado es libre.
-    No modifica la sala.
+    Cuenta recursivamente los asientos libres de una sala.
+    Recorre las columnas y avanza por las filas.
     """
+
+
+    # Caso base: terminamos de recorrer toda la sala
+
+    if fila >= len(sala):
+        return 0
+
+    # Si terminamos una fila, pasamos a la siguiente
+
+    if columna >= len(sala[fila]):
+        return contar_asientos_libres(sala, fila + 1, 0)
+
+    # Comprobamos si el asiento actual esta libre
 
     cantidad = 0
 
+    if sala[fila][columna] == ASIENTO_LIBRE:
+        cantidad = 1
+
+    # Sumamos el asiento actual y seguimos recorriendo
+
+    return cantidad + contar_asientos_libres(
+        sala, fila, columna + 1
+    )
+
+
+
+
+def reconstruir_ocupacion(sala, lista_tickets):
+
+
+    """
+    Reconstruye los asientos ocupados usando los tickets.
+    Los tickets pendientes y cobrados ocupan asientos.
+    Los tickets cancelados no ocupan asientos.
+    """
+
+
+    nueva_sala = []
+
     for fila in sala:
-        for asiento in fila:
-            if asiento == ASIENTO_LIBRE:
-                cantidad = cantidad + 1
+        nueva_sala.append([ASIENTO_LIBRE] * len(fila))
 
-    return cantidad
+    for ticket in lista_tickets:
+        estado = ticket["estado"]
 
+        if estado not in ("pendiente", "cobrado", "cancelado"):
+            return False, "Estado de ticket invalido"
+
+        if estado != "cancelado":
+            fila, columna = ticket["asiento"]
+
+            if not ocupar_asiento(nueva_sala, fila, columna):
+                return False, "Asiento invalido o duplicado"
+
+    # Actualizamos la sala solo si todo fue correcto
+    sala[:] = nueva_sala
+
+    return True, "Ocupacion recuperada correctamente"
 

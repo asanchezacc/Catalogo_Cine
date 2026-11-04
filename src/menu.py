@@ -1,5 +1,4 @@
-import contextlib
-import io
+
 
 from src.datos import datos_iniciales
 from src.modelos import usuarios, clientes
@@ -8,22 +7,65 @@ from src.validaciones import validar_contrasena
 from src.vista import imprimir_encabezado, imprimir_exito, imprimir_error, mostrar_catalogo
 
 PELICULAS = []
-SALA = None
+
 
 def inicializar():
-    global SALA
     datos_iniciales.cargar_peliculas(PELICULAS)
-    with contextlib.redirect_stdout(io.StringIO()):
-        datos_iniciales.cargar_clientes()
+    # Primero se leen los clientes guardados en el JSON para no pisarlos
+    clientes.cargar_clientes_desde_json()
+    datos_iniciales.cargar_clientes()
     datos_iniciales.cargar_usuarios()
-    SALA = asientos.crear_sala(datos_iniciales.SALA_FILAS, datos_iniciales.SALA_COLUMNAS)
+
+    sala = asientos.crear_sala(
+        datos_iniciales.SALA_FILAS,
+        datos_iniciales.SALA_COLUMNAS
+    )
+
+    # Se recuperan los tickets del archivo y se vuelven a ocupar sus asientos
+    exito, mensaje = tickets.cargar_tickets()
+    if not exito:
+        imprimir_error(mensaje)
+    exito, mensaje = asientos.reconstruir_ocupacion(sala, tickets.tickets_registrados)
+    if not exito:
+        imprimir_error(mensaje)
+
+    return sala
 
 
 def pedir_entero(mensaje):
-    entrada = input(mensaje).strip()
-    if not entrada.isdigit():
-        return None
-    return int(entrada)
+    """
+    pre: recibe el mensaje a mostrar.
+    pos: devuelve un número entero. Si el usuario ingresa algo que no es
+    un número (por ejemplo una letra), avisa y lo vuelve a pedir.
+    """
+    while True:
+        try:
+            numero = int(input(mensaje).strip())
+            break
+        except ValueError:
+            imprimir_error("Error: se esperaba un número entero. Volvé a intentarlo.")
+    return numero
+
+
+def pedir_entero_opcional(mensaje):
+    """
+    pre: recibe el mensaje a mostrar.
+    pos: devuelve None si el usuario aprieta Enter sin escribir nada,
+    o un número entero. Si ingresa algo que no es un número, lo vuelve a pedir.
+    """
+    while True:
+        entrada = input(mensaje).strip()
+        if entrada == "":
+            numero = None
+            break
+        try:
+            numero = int(entrada)
+            break
+        except ValueError:
+            imprimir_error("Error: se esperaba un número entero. Volvé a intentarlo.")
+    return numero
+
+
 def mostrar_resultado(exito, mensaje):
     if exito:
         imprimir_exito(mensaje)
@@ -36,16 +78,8 @@ def accion_ver_catalogo():
 
 
 def accion_ver_clientes():
-    clientes_registrados = empleados.listar_clientes(mostrar_inactivos=False)
-    if not clientes_registrados:
-        print("No hay clientes para mostrar.")
-        return
-    for cliente in clientes_registrados:
-        estado = "Activo" if cliente["estado"] else "Inactivo"
-        print(
-            f"ID {cliente['id']} - {cliente['nombre']} - "
-            f"{cliente['email']} - {cliente['telefono']} - {estado}"
-        )
+    # Usa la tabla de clientes.py en lugar de armar el print a mano
+    clientes.mostrar_clientes()
 
 
 def accion_dar_alta_cliente():
@@ -57,15 +91,14 @@ def accion_dar_alta_cliente():
 
 def accion_dar_baja_cliente():
     id_cliente = pedir_entero("ID del cliente a dar de baja: ")
-    if id_cliente is None:
-        imprimir_error("Ingresá un ID válido.")
-        return
     empleados.baja_cliente(id_cliente)
 
 
 def accion_ver_usuarios():
     for u in usuarios.usuarios:
         print(f"{u['usuario']} - {u['nombre']} - {u['rol']}")
+
+
 def accion_agregar_empleado():
     nombre = input("Nombre completo: ").strip()
     nuevo_usuario = input("Nombre de usuario: ").strip()
@@ -82,6 +115,8 @@ def accion_agregar_empleado():
         imprimir_exito(f"Empleado '{nuevo_usuario}' agregado.")
     else:
         imprimir_error(resultado)
+
+
 def accion_eliminar_empleado(usuario_actual, rol_actual):
     usuario_a_borrar = input("Usuario a borrar: ").strip()
     objetivo = usuarios.buscar_usuario(usuario_a_borrar)
@@ -105,6 +140,8 @@ def accion_cambiar_contrasena(usuario_actual):
         return
     exito, mensaje = usuarios.actualizar_contrasena(usuario_actual, nueva_contrasena)
     mostrar_resultado(exito, mensaje)
+
+
 def accion_ver_historial():
     entradas = usuarios.ver_historial()
     if not entradas:
@@ -112,6 +149,8 @@ def accion_ver_historial():
         return
     for accion, usuario, rol in entradas:
         print(f"{accion} - {usuario} ({rol})")
+
+
 def accion_ver_estadisticas():
     resumen = estadisticas.resumen_estadisticas(tickets.tickets_registrados)
     print(f"Precio promedio: ${resumen['promedio_precio']:.2f}")
@@ -122,46 +161,125 @@ def accion_ver_estadisticas():
     print(f"Total recaudado: ${resumen['total_recaudado']}")
 
 
-def accion_ver_tickets():
-    lista = empleados.ver_reservas()
-    if not lista:
+def mostrar_lista_tickets(lista):
+    """Muestra una lista de tickets, uno por línea."""
+    if len(lista) == 0:
         print("No hay tickets para mostrar.")
         return
-    lineas = map(
+    lineas = list(map(
         lambda t: f"#{t['id']} - cliente {t['cliente_id']} - película {t['pelicula_id']} - asiento {t['asiento']} - ${t['precio']} - {t['estado']}",
         lista,
-    )
+    ))
     for linea in lineas:
         print(linea)
 
 
-def accion_crear_ticket(usuario_actual):
+def accion_ver_tickets():
+    mostrar_lista_tickets(empleados.ver_reservas())
+
+
+def tickets_de_pelicula(id_pelicula, lista_tickets):
+    """Devuelve los tickets que corresponden a una película."""
+    return list(filter(lambda t: t["pelicula_id"] == id_pelicula, lista_tickets))
+
+
+def accion_ver_tickets_de_cliente():
+    id_cliente = pedir_entero("ID del cliente: ")
+    cliente = empleados.ver_cliente(id_cliente)
+    if cliente is None:
+        imprimir_error("No existe un cliente con ese ID.")
+        return
+    imprimir_encabezado(f"Tickets de {cliente['nombre']}")
+    mostrar_lista_tickets(clientes.obtener_tickets_de_cliente(id_cliente, tickets.tickets_registrados))
+
+
+def accion_ver_tickets_de_pelicula():
+    accion_ver_catalogo()
+    id_pelicula = pedir_entero("ID de la película: ")
+    pelicula = peliculas.obtener_pelicula(PELICULAS, id_pelicula)
+    if pelicula is None:
+        imprimir_error("Esa película no está en el catálogo.")
+        return
+    imprimir_encabezado(f"Tickets de {pelicula['titulo']}")
+    mostrar_lista_tickets(tickets_de_pelicula(id_pelicula, tickets.tickets_registrados))
+
+
+def proximo_id_pelicula(lista_peliculas):
+    """Devuelve el ID que le corresponde a una película nueva."""
+    if len(lista_peliculas) == 0:
+        return 1
+    ids = [pelicula["id"] for pelicula in lista_peliculas]
+    return max(ids) + 1
+
+
+def accion_alta_pelicula():
+    titulo = input("Título: ").strip()
+    if titulo == "":
+        imprimir_error("El título no puede estar vacío.")
+        return
+    genero = input("Género: ").strip()
+    duracion = pedir_entero("Duración (en minutos): ")
+    precio = pedir_entero("Precio: ")
+    if duracion <= 0 or precio <= 0:
+        imprimir_error("La duración y el precio deben ser mayores que cero.")
+        return
+    id_pelicula = proximo_id_pelicula(PELICULAS)
+    if peliculas.agregar_pelicula(PELICULAS, id_pelicula, titulo, genero, duracion, precio):
+        imprimir_exito(f"Película '{titulo}' agregada con ID {id_pelicula}.")
+    else:
+        imprimir_error("Ya existe una película con ese ID.")
+
+
+def accion_modificar_pelicula():
+    accion_ver_catalogo()
+    id_pelicula = pedir_entero("ID de la película a modificar: ")
+    if peliculas.obtener_pelicula(PELICULAS, id_pelicula) is None:
+        imprimir_error("Esa película no está en el catálogo.")
+        return
+    # Si el usuario aprieta Enter se usa None, y actualizar_pelicula conserva ese dato
+    titulo = input("Nuevo título (Enter para conservarlo): ").strip()
+    if titulo == "":
+        titulo = None
+    genero = input("Nuevo género (Enter para conservarlo): ").strip()
+    if genero == "":
+        genero = None
+    duracion = pedir_entero_opcional("Nueva duración (Enter para conservarla): ")
+    if duracion != None and duracion <= 0:
+        imprimir_error("La duración debe ser mayor que cero.")
+        return
+    precio = pedir_entero_opcional("Nuevo precio (Enter para conservarlo): ")
+    if precio != None and precio <= 0:
+        imprimir_error("El precio debe ser mayor que cero.")
+        return
+    peliculas.actualizar_pelicula(PELICULAS, id_pelicula, titulo, genero, duracion, precio)
+    imprimir_exito(f"Película ID {id_pelicula} modificada.")
+
+
+def accion_baja_pelicula():
+    accion_ver_catalogo()
+    id_pelicula = pedir_entero("ID de la película a dar de baja: ")
+    if peliculas.eliminar_pelicula(PELICULAS, id_pelicula):
+        imprimir_exito(f"Película ID {id_pelicula} eliminada del catálogo.")
+    else:
+        imprimir_error("Esa película no está en el catálogo.")
+
+
+def accion_crear_ticket(usuario_actual, sala):
     empleado = usuarios.buscar_usuario(usuario_actual)
     id_cliente = pedir_entero("ID del cliente: ")
-    if id_cliente is None:
-        imprimir_error("Ingresá un ID válido.")
-        return
     if empleados.ver_cliente(id_cliente) is None:
         imprimir_error("No existe un cliente con ese ID.")
         return
     accion_ver_catalogo()
     id_pelicula = pedir_entero("ID de la película: ")
-    if id_pelicula is None:
-        imprimir_error("Ingresá un ID válido.")
-        return
     pelicula = peliculas.obtener_pelicula(PELICULAS, id_pelicula)
     if pelicula is None:
         imprimir_error("Esa película no está en el catálogo.")
         return
-    fila = pedir_entero(f"Fila del asiento (0 a {len(SALA)-1}): ")
-    columna = pedir_entero(f"Columna del asiento (0 a {len(SALA[0])-1}): ")
-    if fila is None or columna is None:
-        imprimir_error("Ingresá números válidos para el asiento.")
-        return
+    fila = pedir_entero(f"Fila del asiento (0 a {len(sala)-1}): ")
+    columna = pedir_entero(f"Columna del asiento (0 a {len(sala[0])-1}): ")
 
-    exito, resultado = empleados.dar_reserva(
-        SALA, id_cliente, id_pelicula, pelicula["precio"], fila, columna, empleado["id"]
-    )
+    exito, resultado = empleados.dar_reserva(sala, id_cliente, id_pelicula, pelicula["precio"], fila, columna, empleado["id"])
     if exito:
         imprimir_exito(f"Ticket #{resultado} creado.")
     else:
@@ -170,27 +288,18 @@ def accion_crear_ticket(usuario_actual):
 
 def accion_cobrar_ticket():
     id_ticket = pedir_entero("Número de ticket a cobrar: ")
-    if id_ticket is None:
-        imprimir_error("Ingresá un número válido.")
-        return
     exito, mensaje = empleados.cobrar_ticket(id_ticket)
     mostrar_resultado(exito, mensaje)
 
 
-def accion_cancelar_ticket():
+def accion_cancelar_ticket(sala):
     id_ticket = pedir_entero("Número de ticket a cancelar: ")
-    if id_ticket is None:
-        imprimir_error("Ingresá un ID válido.")
-        return
-    exito, mensaje = empleados.cancelar_reserva(SALA, id_ticket)
+    exito, mensaje = empleados.cancelar_reserva(sala, id_ticket)
     mostrar_resultado(exito, mensaje)
 
 
 def accion_imprimir_ticket():
     id_ticket = pedir_entero("Número de ticket: ")
-    if id_ticket is None:
-        imprimir_error("Ingresá un número válido.")
-        return
     datos = empleados.obtener_datos_ticket(id_ticket, PELICULAS)
     if datos is None:
         imprimir_error("Ese ticket no existe.")
@@ -203,8 +312,8 @@ def accion_imprimir_ticket():
     print(f"Estado: {datos['estado']}")
 
 
-def accion_ver_asientos_ocupados():
-    ocupados = empleados.asientos_ocupados(SALA)
+def accion_ver_asientos_ocupados(sala):
+    ocupados = empleados.asientos_ocupados(sala)
     if not ocupados:
         print("No hay asientos ocupados.")
         return
@@ -225,12 +334,15 @@ def accion_buscar_pelicula():
 
 def accion_actualizar_cliente():
     id_cliente = pedir_entero("ID del cliente: ")
-    if id_cliente is None:
-        imprimir_error("Ingresá un ID válido.")
-        return
-    nombre = input("Nuevo nombre (Enter para conservarlo): ").strip() or None
-    email = input("Nuevo email (Enter para conservarlo): ").strip() or None
-    telefono = input("Nuevo teléfono (Enter para conservarlo): ").strip() or None
+    nombre = input("Nuevo nombre (Enter para conservarlo): ").strip()
+    if nombre == "":
+        nombre = None
+    email = input("Nuevo email (Enter para conservarlo): ").strip()
+    if email == "":
+        email = None
+    telefono = input("Nuevo teléfono (Enter para conservarlo): ").strip()
+    if telefono == "":
+        telefono = None
     empleados.actualizar_cliente(id_cliente, nombre, email, telefono)
 
 
@@ -258,26 +370,36 @@ def menu_administrador(usuario_actual):
         print("9. Ver historial de usuarios")
         print("10. Ver estadísticas")
         print("11. Cambiar mi contraseña")
-        print("12. Salir")
-        opcion = input("Elegí una opción: ").strip()
-        if opcion == "1": accion_ver_catalogo()
-        elif opcion == "2": accion_ver_clientes()
-        elif opcion == "3": accion_dar_alta_cliente()
-        elif opcion == "4": accion_dar_baja_cliente()
-        elif opcion == "5": accion_ver_usuarios()
-        elif opcion == "6": accion_agregar_empleado()
-        elif opcion == "7": accion_eliminar_empleado(usuario_actual, "administrador")
-        elif opcion == "8": accion_ver_tickets()
-        elif opcion == "9": accion_ver_historial()
-        elif opcion == "10": accion_ver_estadisticas()
-        elif opcion == "11": accion_cambiar_contrasena(usuario_actual)
-        elif opcion == "12":
+        print("12. Alta de película")
+        print("13. Modificar película")
+        print("14. Baja de película")
+        print("15. Ver tickets de un cliente")
+        print("16. Ver tickets de una película")
+        print("17. Salir")
+        opcion = pedir_entero("Elegí una opción: ")
+        if opcion == 1: accion_ver_catalogo()
+        elif opcion == 2: accion_ver_clientes()
+        elif opcion == 3: accion_dar_alta_cliente()
+        elif opcion == 4: accion_dar_baja_cliente()
+        elif opcion == 5: accion_ver_usuarios()
+        elif opcion == 6: accion_agregar_empleado()
+        elif opcion == 7: accion_eliminar_empleado(usuario_actual, "administrador")
+        elif opcion == 8: accion_ver_tickets()
+        elif opcion == 9: accion_ver_historial()
+        elif opcion == 10: accion_ver_estadisticas()
+        elif opcion == 11: accion_cambiar_contrasena(usuario_actual)
+        elif opcion == 12: accion_alta_pelicula()
+        elif opcion == 13: accion_modificar_pelicula()
+        elif opcion == 14: accion_baja_pelicula()
+        elif opcion == 15: accion_ver_tickets_de_cliente()
+        elif opcion == 16: accion_ver_tickets_de_pelicula()
+        elif opcion == 17:
             print("Cerrando sesión.")
             continuar = False
         else:
             imprimir_error("Opción inválida.")
 
-def menu_empleado(usuario_actual):
+def menu_empleado(usuario_actual, sala):
     continuar = True
     while continuar:
         imprimir_encabezado("Menú empleado")
@@ -294,37 +416,41 @@ def menu_empleado(usuario_actual):
         print("11. Buscar pelicula por titulo")
         print("12. Actualizar cliente")
         print("13. Ver clientes registrados")
-        print("14. Salir")
+        print("14. Ver tickets de un cliente")
+        print("15. Ver tickets de una película")
+        print("16. Salir")
 
-        opcion = input("Elegí una opción: ").strip()
-        if opcion == "1": accion_ver_catalogo()
-        elif opcion == "2": accion_ver_clientes()
-        elif opcion == "3": accion_dar_alta_cliente()
-        elif opcion == "4": accion_dar_baja_cliente()
-        elif opcion == "5": accion_crear_ticket(usuario_actual)
-        elif opcion == "6": accion_cobrar_ticket()
-        elif opcion == "7": accion_cancelar_ticket()
-        elif opcion == "8": accion_imprimir_ticket()
-        elif opcion == "9": accion_ver_tickets()
-        elif opcion == "10": accion_ver_asientos_ocupados()
-        elif opcion == "11": accion_buscar_pelicula()
-        elif opcion == "12": accion_actualizar_cliente()
-        elif opcion == "13": accion_listar_clientes()
-        elif opcion == "14":
+        opcion = pedir_entero("Elegí una opción: ")
+        if opcion == 1: accion_ver_catalogo()
+        elif opcion == 2: accion_ver_clientes()
+        elif opcion == 3: accion_dar_alta_cliente()
+        elif opcion == 4: accion_dar_baja_cliente()
+        elif opcion == 5: accion_crear_ticket(usuario_actual, sala)
+        elif opcion == 6: accion_cobrar_ticket()
+        elif opcion == 7: accion_cancelar_ticket(sala)
+        elif opcion == 8: accion_imprimir_ticket()
+        elif opcion == 9: accion_ver_tickets()
+        elif opcion == 10: accion_ver_asientos_ocupados(sala)
+        elif opcion == 11: accion_buscar_pelicula()
+        elif opcion == 12: accion_actualizar_cliente()
+        elif opcion == 13: accion_listar_clientes()
+        elif opcion == 14: accion_ver_tickets_de_cliente()
+        elif opcion == 15: accion_ver_tickets_de_pelicula()
+        elif opcion == 16:
             print("Cerrando sesión.")
             continuar = False
         else:
             imprimir_error("Opción inválida.")
 def main():
     imprimir_encabezado("Sistema de cine")
-    inicializar()
+    sala = inicializar()
     usuario, rol = usuarios.iniciar_sesion()
     if usuario is None:
         return
     if rol == "administrador":
         menu_administrador(usuario)
     elif rol == "empleado":
-        menu_empleado(usuario)
+        menu_empleado(usuario, sala)
 
 
 if __name__ == "__main__":

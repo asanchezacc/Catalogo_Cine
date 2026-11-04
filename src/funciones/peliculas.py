@@ -58,10 +58,12 @@ def actualizar_pelicula(peliculas, id_pelicula, titulo=None, genero=None, duraci
 
 def eliminar_pelicula(peliculas, id_pelicula):
     """Elimina una película del catálogo por su ID."""
-    for i, pelicula in enumerate(peliculas):
-        if pelicula["id"] == id_pelicula:
+
+    for i in range(len(peliculas)):
+        if peliculas[i]["id"] == id_pelicula:
             peliculas.pop(i)
             return True
+
     return False
 
 

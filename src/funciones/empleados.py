@@ -44,24 +44,32 @@ def buscar_pelicula(catalogo, texto):
 # ------------------ Sala: matriz -> conjunto -> diccionario ------------------
 
 def asientos_ocupados(sala):
-    return {
-        (fila_idx, columna_idx)
-        for fila_idx, fila in enumerate(sala)
-        for columna_idx, estado in enumerate(fila)
-        if estado == asientos.ASIENTO_OCUPADO
-    }
+    ocupados = set()
+
+    for fila_idx in range(len(sala)):
+        for columna_idx in range(len(sala[fila_idx])):
+            if sala[fila_idx][columna_idx] == asientos.ASIENTO_OCUPADO:
+                ocupados.add((fila_idx, columna_idx))
+
+    return ocupados
 
 
 def mapa_ocupacion(sala):
-    """asientos ocupados
-    """
+    """asientos ocupados"""
     ocupados = asientos_ocupados(sala)
     mapa = {}
-    for fila_idx, fila in enumerate(sala):
-        for columna_idx in range(len(fila)):
+
+    for fila_idx in range(len(sala)):
+        for columna_idx in range(len(sala[fila_idx])):
             clave = (fila_idx, columna_idx)
-            mapa[clave] = "Ocupado" if clave in ocupados else "Libre"
+
+            if clave in ocupados:
+                mapa[clave] = "Ocupado"
+            else:
+                mapa[clave] = "Libre"
+
     return mapa
+
 
 
 # ------------------ Reservas y tickets ------------------
