@@ -4,7 +4,7 @@ from src.datos import datos_iniciales
 from src.modelos import usuarios, clientes
 from src.funciones import peliculas, asientos, tickets, estadisticas, empleados
 from src.validaciones import validar_contrasena
-from src.vista import imprimir_encabezado, imprimir_exito, imprimir_error, mostrar_catalogo
+from src.vista import imprimir_encabezado, imprimir_exito, imprimir_error, mostrar_catalogo, mostrar_tabla
 
 PELICULAS = []
 
@@ -95,8 +95,12 @@ def accion_dar_baja_cliente():
 
 
 def accion_ver_usuarios():
-    for u in usuarios.usuarios:
-        print(f"{u['usuario']} - {u['nombre']} - {u['rol']}")
+    columnas = [
+        ("Usuario", "usuario", 15),
+        ("Nombre", "nombre", 25),
+        ("Rol", "rol", 15),
+    ]
+    mostrar_tabla(usuarios.usuarios, columnas)
 
 
 def accion_agregar_empleado():
@@ -151,14 +155,65 @@ def accion_ver_historial():
         print(f"{accion} - {usuario} ({rol})")
 
 
+def titulos_de_ids(ids, lista_peliculas):
+    """Devuelve los títulos de las películas cuyos IDs están en el conjunto recibido."""
+    return [pelicula["titulo"] for pelicula in lista_peliculas if pelicula["id"] in ids]
+
+
 def accion_ver_estadisticas():
-    resumen = estadisticas.resumen_estadisticas(tickets.tickets_registrados)
+    lista_tickets = tickets.tickets_registrados
+
+    imprimir_encabezado("Resumen de tickets")
+    resumen = estadisticas.resumen_estadisticas(lista_tickets)
     print(f"Precio promedio: ${resumen['promedio_precio']:.2f}")
     print(f"Tickets pendientes: {resumen['cantidad_pendientes']}")
     print(f"Tickets cobrados: {resumen['cantidad_cobrados']}")
     print(f"Tickets cancelados: {resumen['cantidad_cancelados']}")
     print(f"Porcentaje cobrados: {resumen['porcentaje_cobrados']:.1f}%")
-    print(f"Total recaudado: ${resumen['total_recaudado']}")
+    print(f"Total recaudado: ${resumen['total_recaudado']:.2f}")
+
+    imprimir_encabezado("Ventas por película")
+    if resumen["cantidad_cobrados"] == 0:
+        print("Todavía no hay tickets cobrados.")
+    else:
+        mas_vendida, menos_vendida = estadisticas.peliculas_mas_y_menos_vendidas(PELICULAS, lista_tickets)
+        if mas_vendida is not None:
+            print(f"Más vendida: {mas_vendida[0]} ({mas_vendida[1]} tickets cobrados)")
+            print(f"Menos vendida: {menos_vendida[0]} ({menos_vendida[1]} tickets cobrados)")
+
+        print("Ranking de las 3 más vendidas:")
+        posicion = 1
+        for titulo, cantidad in estadisticas.ranking_peliculas_mas_vendidas(PELICULAS, lista_tickets):
+            print(f"  {posicion}. {titulo:<25} {cantidad:>3} tickets")
+            posicion += 1
+
+        # Conjuntos: interseccion y diferencia hechas en estadisticas.py
+        con_ventas, sin_ventas = estadisticas.clasificar_peliculas_por_ventas(PELICULAS, lista_tickets)
+        print(f"Con ventas: {', '.join(titulos_de_ids(con_ventas, PELICULAS))}")
+        if len(sin_ventas) == 0:
+            print("Sin ventas: ninguna")
+        else:
+            print(f"Sin ventas: {', '.join(titulos_de_ids(sin_ventas, PELICULAS))}")
+
+    imprimir_encabezado("Precio promedio por género")
+    promedios = estadisticas.promedio_precio_por_genero(PELICULAS)
+    for genero, promedio in promedios.items():
+        print(f"{genero:<20} ${promedio:>9.2f}")
+
+
+def linea_ticket(ticket):
+    """Arma la línea de un ticket con el nombre del cliente y el título de la película."""
+    cliente = empleados.ver_cliente(ticket["cliente_id"])
+    pelicula = peliculas.obtener_pelicula(PELICULAS, ticket["pelicula_id"])
+    nombre = "?"
+    if cliente is not None:
+        nombre = cliente["nombre"]
+    titulo = "?"
+    if pelicula is not None:
+        titulo = pelicula["titulo"]
+    fila, columna = ticket["asiento"]
+    return (f"#{ticket['id']:<4}{nombre:<20}{titulo:<25}"
+            f"fila {fila} col {columna}  ${ticket['precio']:>9.2f}  {ticket['estado']}")
 
 
 def mostrar_lista_tickets(lista):
@@ -166,10 +221,7 @@ def mostrar_lista_tickets(lista):
     if len(lista) == 0:
         print("No hay tickets para mostrar.")
         return
-    lineas = list(map(
-        lambda t: f"#{t['id']} - cliente {t['cliente_id']} - película {t['pelicula_id']} - asiento {t['asiento']} - ${t['precio']} - {t['estado']}",
-        lista,
-    ))
+    lineas = list(map(linea_ticket, lista))
     for linea in lineas:
         print(linea)
 
@@ -181,6 +233,11 @@ def accion_ver_tickets():
 def tickets_de_pelicula(id_pelicula, lista_tickets):
     """Devuelve los tickets que corresponden a una película."""
     return list(filter(lambda t: t["pelicula_id"] == id_pelicula, lista_tickets))
+
+
+def tickets_activos_de_pelicula(id_pelicula, lista_tickets):
+    """Devuelve los tickets pendientes o cobrados de una película (no los cancelados)."""
+    return list(filter(lambda t: t["estado"] != "cancelado", tickets_de_pelicula(id_pelicula, lista_tickets)))
 
 
 def accion_ver_tickets_de_cliente():
@@ -212,12 +269,30 @@ def proximo_id_pelicula(lista_peliculas):
     return max(ids) + 1
 
 
+def titulo_repetido(titulo, lista_peliculas, id_excluido=None):
+    """
+    pre: recibe un título, la lista de películas y opcionalmente el ID de una
+    película que no se tiene en cuenta (la que se está modificando).
+    pos: devuelve True si otra película ya tiene ese título (sin importar mayúsculas).
+    """
+    for pelicula in lista_peliculas:
+        if pelicula["id"] != id_excluido and pelicula["titulo"].lower() == titulo.lower():
+            return True
+    return False
+
+
 def accion_alta_pelicula():
     titulo = input("Título: ").strip()
     if titulo == "":
         imprimir_error("El título no puede estar vacío.")
         return
+    if titulo_repetido(titulo, PELICULAS):
+        imprimir_error("Ya existe una película con ese título.")
+        return
     genero = input("Género: ").strip()
+    if genero == "":
+        imprimir_error("El género no puede estar vacío.")
+        return
     duracion = pedir_entero("Duración (en minutos): ")
     precio = pedir_entero("Precio: ")
     if duracion <= 0 or precio <= 0:
@@ -240,6 +315,9 @@ def accion_modificar_pelicula():
     titulo = input("Nuevo título (Enter para conservarlo): ").strip()
     if titulo == "":
         titulo = None
+    elif titulo_repetido(titulo, PELICULAS, id_pelicula):
+        imprimir_error("Ya existe otra película con ese título.")
+        return
     genero = input("Nuevo género (Enter para conservarlo): ").strip()
     if genero == "":
         genero = None
@@ -251,6 +329,9 @@ def accion_modificar_pelicula():
     if precio != None and precio <= 0:
         imprimir_error("El precio debe ser mayor que cero.")
         return
+    if titulo == None and genero == None and duracion == None and precio == None:
+        print("No se cambió ningún dato.")
+        return
     peliculas.actualizar_pelicula(PELICULAS, id_pelicula, titulo, genero, duracion, precio)
     imprimir_exito(f"Película ID {id_pelicula} modificada.")
 
@@ -258,6 +339,10 @@ def accion_modificar_pelicula():
 def accion_baja_pelicula():
     accion_ver_catalogo()
     id_pelicula = pedir_entero("ID de la película a dar de baja: ")
+    activos = tickets_activos_de_pelicula(id_pelicula, tickets.tickets_registrados)
+    if len(activos) > 0:
+        imprimir_error(f"No se puede dar de baja: tiene {len(activos)} ticket(s) pendientes o cobrados.")
+        return
     if peliculas.eliminar_pelicula(PELICULAS, id_pelicula):
         imprimir_exito(f"Película ID {id_pelicula} eliminada del catálogo.")
     else:
@@ -267,8 +352,12 @@ def accion_baja_pelicula():
 def accion_crear_ticket(usuario_actual, sala):
     empleado = usuarios.buscar_usuario(usuario_actual)
     id_cliente = pedir_entero("ID del cliente: ")
-    if empleados.ver_cliente(id_cliente) is None:
+    cliente = empleados.ver_cliente(id_cliente)
+    if cliente is None:
         imprimir_error("No existe un cliente con ese ID.")
+        return
+    if cliente["estado"] == False:
+        imprimir_error("Ese cliente está dado de baja. No se le pueden hacer reservas.")
         return
     accion_ver_catalogo()
     id_pelicula = pedir_entero("ID de la película: ")
@@ -276,6 +365,7 @@ def accion_crear_ticket(usuario_actual, sala):
     if pelicula is None:
         imprimir_error("Esa película no está en el catálogo.")
         return
+    mostrar_grilla_sala(sala)
     fila = pedir_entero(f"Fila del asiento (0 a {len(sala)-1}): ")
     columna = pedir_entero(f"Columna del asiento (0 a {len(sala[0])-1}): ")
 
@@ -308,28 +398,62 @@ def accion_imprimir_ticket():
     print(f"Cliente: {datos['cliente']}")
     print(f"Película: {datos['pelicula']}")
     print(f"Asiento: {datos['asiento']}")
-    print(f"Precio: ${datos['precio']}")
+    print(f"Precio: ${datos['precio']:.2f}")
     print(f"Estado: {datos['estado']}")
 
 
-def accion_ver_asientos_ocupados(sala):
-    ocupados = empleados.asientos_ocupados(sala)
-    if not ocupados:
-        print("No hay asientos ocupados.")
+def armar_grilla_sala(mapa, filas, columnas):
+    """
+    pre: recibe el diccionario de mapa_ocupacion ({(fila, columna): "Libre"/"Ocupado"})
+    y la cantidad de filas y columnas de la sala.
+    pos: devuelve una lista de cadenas, una por cada línea de la grilla.
+    Usa los mismos números de fila y columna que se piden al reservar.
+    """
+    lineas = []
+    encabezado = "      "
+    for columna in range(columnas):
+        encabezado += f"{columna:>3}"
+    lineas.append(encabezado)
+
+    for fila in range(filas):
+        linea = f"Fila {fila}"
+        for columna in range(columnas):
+            if mapa[(fila, columna)] == "Ocupado":
+                linea += "  X"
+            else:
+                linea += "  -"
+        lineas.append(linea)
+    return lineas
+
+
+def mostrar_grilla_sala(sala):
+    """Muestra la sala como una grilla usando mapa_ocupacion."""
+    if len(sala) == 0:
+        imprimir_error("La sala no tiene asientos.")
         return
-    print("Asientos ocupados:")
-    for fila, columna in sorted(ocupados):
-        print(f"Fila {fila}, columna {columna}")
+    mapa = empleados.mapa_ocupacion(sala)
+    filas = len(sala)
+    columnas = len(sala[0])
+
+    imprimir_encabezado("Sala")
+    print(f"{'PANTALLA':^{6 + columnas * 3}}")
+    for linea in armar_grilla_sala(mapa, filas, columnas):
+        print(linea)
+    print("  - Libre    X Ocupado")
+    print(f"Asientos libres: {asientos.contar_asientos_libres(sala)}")
+
+
+def accion_ver_asientos_ocupados(sala):
+    mostrar_grilla_sala(sala)
 
 
 def accion_buscar_pelicula():
     texto = input("Texto del título a buscar: ").strip()
     resultados = empleados.buscar_pelicula(PELICULAS, texto)
-    if not resultados:
+    if len(resultados) == 0:
         print("No se encontraron películas.")
         return
-    for pelicula in resultados:
-        print(f"ID {pelicula['id']} - {pelicula['titulo']}")
+    mostrar_catalogo(resultados)
 
 
 def accion_actualizar_cliente():
@@ -346,13 +470,46 @@ def accion_actualizar_cliente():
     empleados.actualizar_cliente(id_cliente, nombre, email, telefono)
 
 
-def accion_listar_clientes():
-    clientes_registrados = empleados.listar_clientes(mostrar_inactivos=False)
-    if not clientes_registrados:
-        print("No hay clientes registrados.")
+# Tupla: los campos por los que se puede ordenar no cambian
+CAMPOS_ORDEN_CLIENTES = ("id", "nombre", "email", "estado")
+
+
+def clientes_para_tabla(lista_clientes):
+    """Devuelve copias de los clientes con el estado como texto (Activo/Inactivo)."""
+    resultado = []
+    for cliente in lista_clientes:
+        copia = cliente.copy()
+        if cliente["estado"]:
+            copia["estado"] = "Activo"
+        else:
+            copia["estado"] = "Inactivo"
+        resultado.append(copia)
+    return resultado
+
+
+def accion_ordenar_clientes():
+    print("Ordenar por: 1. ID   2. Nombre   3. Email   4. Estado")
+    opcion = pedir_entero("Elegí la columna: ")
+    if opcion < 1 or opcion > len(CAMPOS_ORDEN_CLIENTES):
+        imprimir_error("Opción inválida.")
         return
-    for cliente in clientes_registrados:
-        print(f"ID {cliente['id']} - {cliente['nombre']} - {cliente['email']}")
+    campo = CAMPOS_ORDEN_CLIENTES[opcion - 1]
+    respuesta = input("¿De mayor a menor? (s/n): ").strip().lower()
+    ordenados = clientes.ordenar_clientes(campo, respuesta == "s")
+    columnas = [
+        ("ID", "id", 5),
+        ("Nombre", "nombre", 25),
+        ("Email", "email", 30),
+        ("Telefono", "telefono", 15),
+        ("Estado", "estado", 10),
+    ]
+    imprimir_encabezado(f"Clientes ordenados por {campo}")
+    mostrar_tabla(clientes_para_tabla(ordenados), columnas)
+
+
+def accion_listar_clientes():
+    # La opción 2 muestra solo los activos; esta muestra también los dados de baja
+    clientes.mostrar_clientes(mostrar_inactivos=True)
 
 
 def menu_administrador(usuario_actual):
@@ -375,7 +532,8 @@ def menu_administrador(usuario_actual):
         print("14. Baja de película")
         print("15. Ver tickets de un cliente")
         print("16. Ver tickets de una película")
-        print("17. Salir")
+        print("17. Ordenar clientes")
+        print("18. Salir")
         opcion = pedir_entero("Elegí una opción: ")
         if opcion == 1: accion_ver_catalogo()
         elif opcion == 2: accion_ver_clientes()
@@ -393,7 +551,8 @@ def menu_administrador(usuario_actual):
         elif opcion == 14: accion_baja_pelicula()
         elif opcion == 15: accion_ver_tickets_de_cliente()
         elif opcion == 16: accion_ver_tickets_de_pelicula()
-        elif opcion == 17:
+        elif opcion == 17: accion_ordenar_clientes()
+        elif opcion == 18:
             print("Cerrando sesión.")
             continuar = False
         else:
@@ -412,10 +571,10 @@ def menu_empleado(usuario_actual, sala):
         print("7. Cancelar reserva")
         print("8. Imprimir ticket")
         print("9. Ver todos los tickets")
-        print("10. Asientos ocupados")
+        print("10. Ver sala (asientos ocupados)")
         print("11. Buscar pelicula por titulo")
         print("12. Actualizar cliente")
-        print("13. Ver clientes registrados")
+        print("13. Ver todos los clientes (incluye dados de baja)")
         print("14. Ver tickets de un cliente")
         print("15. Ver tickets de una película")
         print("16. Salir")
