@@ -87,3 +87,11 @@ def test_armar_grilla_sala_marca_ocupados():
     assert lineas[0] == "        0  1"
     assert lineas[1] == "Fila 0  -  X"
     assert lineas[2] == "Fila 1  -  -"
+
+
+# ------------------ Estadisticas ------------------
+
+def test_titulos_de_ids():
+    lista = [{"id": 1, "titulo": "A"}, {"id": 2, "titulo": "B"}, {"id": 3, "titulo": "C"}]
+    assert menu.titulos_de_ids({1, 3}, lista) == ["A", "C"]
+    assert menu.titulos_de_ids(set(), lista) == []

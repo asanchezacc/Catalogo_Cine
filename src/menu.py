@@ -151,14 +151,50 @@ def accion_ver_historial():
         print(f"{accion} - {usuario} ({rol})")
 
 
+def titulos_de_ids(ids, lista_peliculas):
+    """Devuelve los títulos de las películas cuyos IDs están en el conjunto recibido."""
+    return [pelicula["titulo"] for pelicula in lista_peliculas if pelicula["id"] in ids]
+
+
 def accion_ver_estadisticas():
-    resumen = estadisticas.resumen_estadisticas(tickets.tickets_registrados)
+    lista_tickets = tickets.tickets_registrados
+
+    imprimir_encabezado("Resumen de tickets")
+    resumen = estadisticas.resumen_estadisticas(lista_tickets)
     print(f"Precio promedio: ${resumen['promedio_precio']:.2f}")
     print(f"Tickets pendientes: {resumen['cantidad_pendientes']}")
     print(f"Tickets cobrados: {resumen['cantidad_cobrados']}")
     print(f"Tickets cancelados: {resumen['cantidad_cancelados']}")
     print(f"Porcentaje cobrados: {resumen['porcentaje_cobrados']:.1f}%")
-    print(f"Total recaudado: ${resumen['total_recaudado']}")
+    print(f"Total recaudado: ${resumen['total_recaudado']:.2f}")
+
+    imprimir_encabezado("Ventas por película")
+    if resumen["cantidad_cobrados"] == 0:
+        print("Todavía no hay tickets cobrados.")
+    else:
+        mas_vendida, menos_vendida = estadisticas.peliculas_mas_y_menos_vendidas(PELICULAS, lista_tickets)
+        if mas_vendida is not None:
+            print(f"Más vendida: {mas_vendida[0]} ({mas_vendida[1]} tickets cobrados)")
+            print(f"Menos vendida: {menos_vendida[0]} ({menos_vendida[1]} tickets cobrados)")
+
+        print("Ranking de las 3 más vendidas:")
+        posicion = 1
+        for titulo, cantidad in estadisticas.ranking_peliculas_mas_vendidas(PELICULAS, lista_tickets):
+            print(f"  {posicion}. {titulo:<25} {cantidad:>3} tickets")
+            posicion += 1
+
+        # Conjuntos: interseccion y diferencia hechas en estadisticas.py
+        con_ventas, sin_ventas = estadisticas.clasificar_peliculas_por_ventas(PELICULAS, lista_tickets)
+        print(f"Con ventas: {', '.join(titulos_de_ids(con_ventas, PELICULAS))}")
+        if len(sin_ventas) == 0:
+            print("Sin ventas: ninguna")
+        else:
+            print(f"Sin ventas: {', '.join(titulos_de_ids(sin_ventas, PELICULAS))}")
+
+    imprimir_encabezado("Precio promedio por género")
+    promedios = estadisticas.promedio_precio_por_genero(PELICULAS)
+    for genero, promedio in promedios.items():
+        print(f"{genero:<20} ${promedio:>9.2f}")
 
 
 def mostrar_lista_tickets(lista):
