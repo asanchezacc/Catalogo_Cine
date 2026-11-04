@@ -489,6 +489,14 @@ def accion_actualizar_cliente():
         telefono = None
     empleados.actualizar_cliente(id_cliente, nombre, email, telefono)
 
+def accion_ver_mis_tickets(usuario_actual):
+    """Búsqueda A -> B: muestra los tickets que reservó el empleado logueado."""
+    exito, resultado = empleados.tickets_de_empleado(usuario_actual)
+    if not exito:
+        imprimir_error(resultado)
+        return
+    imprimir_encabezado("Mis tickets")
+    mostrar_lista_tickets(resultado)
 
 # Tupla: los campos por los que se puede ordenar no cambian
 CAMPOS_ORDEN_CLIENTES = ("id", "nombre", "email", "estado")
@@ -615,7 +623,8 @@ def menu_empleado(usuario_actual, sala):
         elif opcion == 13: accion_listar_clientes()
         elif opcion == 14: accion_ver_tickets_de_cliente()
         elif opcion == 15: accion_ver_tickets_de_pelicula()
-        elif opcion == 16:
+        elif opcion == 16: accion_ver_mis_tickets(usuario_actual)
+        elif opcion == 17:
             print("Cerrando sesión.")
             continuar = False
         else:

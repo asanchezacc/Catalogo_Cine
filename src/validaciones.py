@@ -39,3 +39,19 @@ def validar_contrasena(contrasena, longitud_minima=8):
             return False, mensaje
 
     return True, "Contraseña válida."
+
+
+def contar_mayusculas_recursivo(texto):
+    """
+    Cuenta las mayúsculas de una cadena de forma recursiva.
+    Caso base: cadena vacía -> 0.
+    Caso recursivo: se analiza el primer carácter y se sigue con el resto.
+    Reducción del dominio: texto[1:] (la cadena pierde un carácter por llamada).
+    """
+    if len(texto) == 0:
+        return 0
+
+    if texto[0].isupper():
+        return 1 + contar_mayusculas_recursivo(texto[1:])
+
+    return contar_mayusculas_recursivo(texto[1:])
