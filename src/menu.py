@@ -316,7 +316,8 @@ def accion_alta_pelicula():
     if peliculas.agregar_pelicula(PELICULAS, id_pelicula, titulo, genero, duracion, precio):
         imprimir_exito(f"Película '{recortar_titulo(titulo)}' agregada con ID {id_pelicula}.")
     else:
-        imprimir_error("Ya existe una película con ese ID.")
+        # El ID siempre es nuevo, así que si falla es porque no se pudo guardar el JSON
+        imprimir_error("No se pudo guardar la película en el archivo.")
 
 
 def accion_modificar_pelicula():
@@ -346,13 +347,18 @@ def accion_modificar_pelicula():
     if titulo == None and genero == None and duracion == None and precio == None:
         print("No se cambió ningún dato.")
         return
-    peliculas.actualizar_pelicula(PELICULAS, id_pelicula, titulo, genero, duracion, precio)
-    imprimir_exito(f"Película ID {id_pelicula} modificada.")
+    if peliculas.actualizar_pelicula(PELICULAS, id_pelicula, titulo, genero, duracion, precio):
+        imprimir_exito(f"Película ID {id_pelicula} modificada.")
+    else:
+        imprimir_error("No se pudo guardar el cambio en el archivo.")
 
 
 def accion_baja_pelicula():
     accion_ver_catalogo()
     id_pelicula = pedir_entero("ID de la película a dar de baja: ")
+    if peliculas.obtener_pelicula(PELICULAS, id_pelicula) is None:
+        imprimir_error("Esa película no está en el catálogo.")
+        return
     activos = tickets_activos_de_pelicula(id_pelicula, tickets.tickets_registrados)
     if len(activos) > 0:
         imprimir_error(f"No se puede dar de baja: tiene {len(activos)} ticket(s) pendientes o cobrados.")
@@ -360,7 +366,7 @@ def accion_baja_pelicula():
     if peliculas.eliminar_pelicula(PELICULAS, id_pelicula):
         imprimir_exito(f"Película ID {id_pelicula} eliminada del catálogo.")
     else:
-        imprimir_error("Esa película no está en el catálogo.")
+        imprimir_error("No se pudo guardar el cambio en el archivo.")
 
 
 def accion_crear_ticket(usuario_actual, sala):
