@@ -132,3 +132,15 @@ def test_linea_ticket_muestra_nombre_y_titulo():
         assert "?" in linea
     finally:
         menu.PELICULAS.pop()
+
+
+# ------------------ Ordenar clientes ------------------
+
+def test_clientes_para_tabla_no_modifica_originales():
+    lista = [{"id": 1, "nombre": "A", "estado": True}, {"id": 2, "nombre": "B", "estado": False}]
+    tabla = menu.clientes_para_tabla(lista)
+    assert tabla[0]["estado"] == "Activo"
+    assert tabla[1]["estado"] == "Inactivo"
+    # Las originales siguen con True/False
+    assert lista[0]["estado"] is True
+    assert lista[1]["estado"] is False

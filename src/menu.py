@@ -470,6 +470,43 @@ def accion_actualizar_cliente():
     empleados.actualizar_cliente(id_cliente, nombre, email, telefono)
 
 
+# Tupla: los campos por los que se puede ordenar no cambian
+CAMPOS_ORDEN_CLIENTES = ("id", "nombre", "email", "estado")
+
+
+def clientes_para_tabla(lista_clientes):
+    """Devuelve copias de los clientes con el estado como texto (Activo/Inactivo)."""
+    resultado = []
+    for cliente in lista_clientes:
+        copia = cliente.copy()
+        if cliente["estado"]:
+            copia["estado"] = "Activo"
+        else:
+            copia["estado"] = "Inactivo"
+        resultado.append(copia)
+    return resultado
+
+
+def accion_ordenar_clientes():
+    print("Ordenar por: 1. ID   2. Nombre   3. Email   4. Estado")
+    opcion = pedir_entero("Elegí la columna: ")
+    if opcion < 1 or opcion > len(CAMPOS_ORDEN_CLIENTES):
+        imprimir_error("Opción inválida.")
+        return
+    campo = CAMPOS_ORDEN_CLIENTES[opcion - 1]
+    respuesta = input("¿De mayor a menor? (s/n): ").strip().lower()
+    ordenados = clientes.ordenar_clientes(campo, respuesta == "s")
+    columnas = [
+        ("ID", "id", 5),
+        ("Nombre", "nombre", 25),
+        ("Email", "email", 30),
+        ("Telefono", "telefono", 15),
+        ("Estado", "estado", 10),
+    ]
+    imprimir_encabezado(f"Clientes ordenados por {campo}")
+    mostrar_tabla(clientes_para_tabla(ordenados), columnas)
+
+
 def accion_listar_clientes():
     # La opción 2 muestra solo los activos; esta muestra también los dados de baja
     clientes.mostrar_clientes(mostrar_inactivos=True)
@@ -495,7 +532,8 @@ def menu_administrador(usuario_actual):
         print("14. Baja de película")
         print("15. Ver tickets de un cliente")
         print("16. Ver tickets de una película")
-        print("17. Salir")
+        print("17. Ordenar clientes")
+        print("18. Salir")
         opcion = pedir_entero("Elegí una opción: ")
         if opcion == 1: accion_ver_catalogo()
         elif opcion == 2: accion_ver_clientes()
@@ -513,7 +551,8 @@ def menu_administrador(usuario_actual):
         elif opcion == 14: accion_baja_pelicula()
         elif opcion == 15: accion_ver_tickets_de_cliente()
         elif opcion == 16: accion_ver_tickets_de_pelicula()
-        elif opcion == 17:
+        elif opcion == 17: accion_ordenar_clientes()
+        elif opcion == 18:
             print("Cerrando sesión.")
             continuar = False
         else:
