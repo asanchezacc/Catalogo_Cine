@@ -1,0 +1,23 @@
+[
+    {
+        "id": 1,
+        "nombre": "Lary Choi",
+        "email": "larychoi@email.com",
+        "telefono": "1122334455",
+        "estado": true
+    },
+    {
+        "id": 2,
+        "nombre": "Tómas Moran",
+        "email": "tomasmoran@email.com",
+        "telefono": "1166778899",
+        "estado": true
+    },
+    {
+        "id": 3,
+        "nombre": "Juan Cruz Iocco",
+        "email": "juaniocco@email.com",
+        "telefono": "1144556677",
+        "estado": true
+    }
+]

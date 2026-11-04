@@ -2,8 +2,6 @@
 Datos iniciales del sistema.
 Carga de clientes, peliculas y usuarios de prueba al arrancar el programa.
 """
-import os
-
 from src.modelos import clientes, usuarios
 from src.funciones import peliculas, asientos
 from src.vista import imprimir_mensaje, imprimir_encabezado, CYAN
@@ -40,6 +38,9 @@ def cargar_clientes():
 
 def cargar_peliculas(lista_peliculas):
     """Da de alta las peliculas de prueba en la lista recibida."""
+    if peliculas.cargar_peliculas_desde_json(lista_peliculas):
+        return len(lista_peliculas)
+
     cantidad = 0
     id_pelicula = 1
 
@@ -58,6 +59,7 @@ def cargar_peliculas(lista_peliculas):
 
         id_pelicula += 1
 
+    peliculas.guardar_peliculas(lista_peliculas)
     return cantidad
 
 def cargar_usuarios():
@@ -73,16 +75,11 @@ def cargar_datos(lista_peliculas):
     """Carga todos los datos iniciales y crea la sala, usando JSON si ya existen."""
     imprimir_encabezado("Cargando datos")
 
-    ruta_clientes = "src/datos/clientes.json"
-    
-    if not os.path.exists(ruta_clientes):
-        # Si el archivo no existe, es la primera vez.
+    if not clientes.cargar_clientes_desde_json():
         n_clientes = cargar_clientes()
         clientes.guardar_clientes() # Guarda el archivo JSON
         imprimir_mensaje(f"Clientes iniciales creados: {n_clientes}", CYAN)
     else:
-        # Si ya existe, los leemos del JSON (no los volvemos a crear).
-        clientes.cargar_clientes_desde_json()
         imprimir_mensaje(f"Clientes cargados desde JSON: {len(clientes.lista_clientes)}", CYAN)
 
     n_peliculas = cargar_peliculas(lista_peliculas)

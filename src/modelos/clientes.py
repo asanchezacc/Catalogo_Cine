@@ -37,10 +37,18 @@ def cargar_clientes_desde_json():
         # Si el archivo no existe, arranca con listas vacias
         lista_clientes = []
         emails_activos = set()
+        return False
+    except OSError as error:
+        imprimir_error(f"No se pudo leer el archivo de clientes: {error}")
+        lista_clientes = []
+        emails_activos = set()
+        return False
     except json.JSONDecodeError:
         imprimir_error("El archivo de clientes esta dañado o mal formateado.")
         lista_clientes = []
         emails_activos = set()
+        return False
+    return True
 
 
 def sumar_digitos_telefono_recursivo(telefono):
