@@ -4,7 +4,7 @@ from src.datos import datos_iniciales
 from src.modelos import usuarios, clientes
 from src.funciones import peliculas, asientos, tickets, estadisticas, empleados
 from src.validaciones import validar_contrasena
-from src.vista import imprimir_encabezado, imprimir_exito, imprimir_error, mostrar_catalogo
+from src.vista import imprimir_encabezado, imprimir_exito, imprimir_error, mostrar_catalogo, mostrar_tabla
 
 PELICULAS = []
 
@@ -95,8 +95,12 @@ def accion_dar_baja_cliente():
 
 
 def accion_ver_usuarios():
-    for u in usuarios.usuarios:
-        print(f"{u['usuario']} - {u['nombre']} - {u['rol']}")
+    columnas = [
+        ("Usuario", "usuario", 15),
+        ("Nombre", "nombre", 25),
+        ("Rol", "rol", 15),
+    ]
+    mostrar_tabla(usuarios.usuarios, columnas)
 
 
 def accion_agregar_empleado():
@@ -197,15 +201,27 @@ def accion_ver_estadisticas():
         print(f"{genero:<20} ${promedio:>9.2f}")
 
 
+def linea_ticket(ticket):
+    """Arma la línea de un ticket con el nombre del cliente y el título de la película."""
+    cliente = empleados.ver_cliente(ticket["cliente_id"])
+    pelicula = peliculas.obtener_pelicula(PELICULAS, ticket["pelicula_id"])
+    nombre = "?"
+    if cliente is not None:
+        nombre = cliente["nombre"]
+    titulo = "?"
+    if pelicula is not None:
+        titulo = pelicula["titulo"]
+    fila, columna = ticket["asiento"]
+    return (f"#{ticket['id']:<4}{nombre:<20}{titulo:<25}"
+            f"fila {fila} col {columna}  ${ticket['precio']:>9.2f}  {ticket['estado']}")
+
+
 def mostrar_lista_tickets(lista):
     """Muestra una lista de tickets, uno por línea."""
     if len(lista) == 0:
         print("No hay tickets para mostrar.")
         return
-    lineas = list(map(
-        lambda t: f"#{t['id']} - cliente {t['cliente_id']} - película {t['pelicula_id']} - asiento {t['asiento']} - ${t['precio']} - {t['estado']}",
-        lista,
-    ))
+    lineas = list(map(linea_ticket, lista))
     for linea in lineas:
         print(linea)
 
@@ -382,7 +398,7 @@ def accion_imprimir_ticket():
     print(f"Cliente: {datos['cliente']}")
     print(f"Película: {datos['pelicula']}")
     print(f"Asiento: {datos['asiento']}")
-    print(f"Precio: ${datos['precio']}")
+    print(f"Precio: ${datos['precio']:.2f}")
     print(f"Estado: {datos['estado']}")
 
 
@@ -434,11 +450,10 @@ def accion_ver_asientos_ocupados(sala):
 def accion_buscar_pelicula():
     texto = input("Texto del título a buscar: ").strip()
     resultados = empleados.buscar_pelicula(PELICULAS, texto)
-    if not resultados:
+    if len(resultados) == 0:
         print("No se encontraron películas.")
         return
-    for pelicula in resultados:
-        print(f"ID {pelicula['id']} - {pelicula['titulo']}")
+    mostrar_catalogo(resultados)
 
 
 def accion_actualizar_cliente():
@@ -456,12 +471,8 @@ def accion_actualizar_cliente():
 
 
 def accion_listar_clientes():
-    clientes_registrados = empleados.listar_clientes(mostrar_inactivos=False)
-    if not clientes_registrados:
-        print("No hay clientes registrados.")
-        return
-    for cliente in clientes_registrados:
-        print(f"ID {cliente['id']} - {cliente['nombre']} - {cliente['email']}")
+    # La opción 2 muestra solo los activos; esta muestra también los dados de baja
+    clientes.mostrar_clientes(mostrar_inactivos=True)
 
 
 def menu_administrador(usuario_actual):
@@ -524,7 +535,7 @@ def menu_empleado(usuario_actual, sala):
         print("10. Ver sala (asientos ocupados)")
         print("11. Buscar pelicula por titulo")
         print("12. Actualizar cliente")
-        print("13. Ver clientes registrados")
+        print("13. Ver todos los clientes (incluye dados de baja)")
         print("14. Ver tickets de un cliente")
         print("15. Ver tickets de una película")
         print("16. Salir")

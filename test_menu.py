@@ -118,3 +118,17 @@ def test_titulo_repetido_sin_importar_mayusculas():
     # Al modificar la película 1 puede conservar su propio título
     assert menu.titulo_repetido("Supergirl", lista, 1) is False
     assert menu.titulo_repetido("La Odisea", lista, 1) is True
+
+
+def test_linea_ticket_muestra_nombre_y_titulo():
+    menu.PELICULAS.append({"id": 900, "titulo": "Pelicula de prueba", "genero": "Drama", "duracion": 90, "precio": 2000})
+    try:
+        ticket = {"id": 1, "cliente_id": 9999, "pelicula_id": 900, "asiento": (2, 3), "precio": 2000, "estado": "pendiente"}
+        linea = menu.linea_ticket(ticket)
+        assert "Pelicula de prueba" in linea
+        assert "fila 2 col 3" in linea
+        assert "2000.00" in linea
+        # El cliente 9999 no existe, por eso aparece "?"
+        assert "?" in linea
+    finally:
+        menu.PELICULAS.pop()
