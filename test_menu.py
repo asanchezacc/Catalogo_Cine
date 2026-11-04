@@ -109,3 +109,12 @@ def test_tickets_activos_de_pelicula_ignora_cancelados():
     assert activos[0]["id"] == 1
     assert activos[1]["id"] == 3
     assert menu.tickets_activos_de_pelicula(9, lista) == []
+
+
+def test_titulo_repetido_sin_importar_mayusculas():
+    lista = [{"id": 1, "titulo": "Supergirl"}, {"id": 2, "titulo": "La Odisea"}]
+    assert menu.titulo_repetido("supergirl", lista) is True
+    assert menu.titulo_repetido("Avatar 3", lista) is False
+    # Al modificar la película 1 puede conservar su propio título
+    assert menu.titulo_repetido("Supergirl", lista, 1) is False
+    assert menu.titulo_repetido("La Odisea", lista, 1) is True

@@ -253,12 +253,30 @@ def proximo_id_pelicula(lista_peliculas):
     return max(ids) + 1
 
 
+def titulo_repetido(titulo, lista_peliculas, id_excluido=None):
+    """
+    pre: recibe un título, la lista de películas y opcionalmente el ID de una
+    película que no se tiene en cuenta (la que se está modificando).
+    pos: devuelve True si otra película ya tiene ese título (sin importar mayúsculas).
+    """
+    for pelicula in lista_peliculas:
+        if pelicula["id"] != id_excluido and pelicula["titulo"].lower() == titulo.lower():
+            return True
+    return False
+
+
 def accion_alta_pelicula():
     titulo = input("Título: ").strip()
     if titulo == "":
         imprimir_error("El título no puede estar vacío.")
         return
+    if titulo_repetido(titulo, PELICULAS):
+        imprimir_error("Ya existe una película con ese título.")
+        return
     genero = input("Género: ").strip()
+    if genero == "":
+        imprimir_error("El género no puede estar vacío.")
+        return
     duracion = pedir_entero("Duración (en minutos): ")
     precio = pedir_entero("Precio: ")
     if duracion <= 0 or precio <= 0:
@@ -281,6 +299,9 @@ def accion_modificar_pelicula():
     titulo = input("Nuevo título (Enter para conservarlo): ").strip()
     if titulo == "":
         titulo = None
+    elif titulo_repetido(titulo, PELICULAS, id_pelicula):
+        imprimir_error("Ya existe otra película con ese título.")
+        return
     genero = input("Nuevo género (Enter para conservarlo): ").strip()
     if genero == "":
         genero = None
@@ -291,6 +312,9 @@ def accion_modificar_pelicula():
     precio = pedir_entero_opcional("Nuevo precio (Enter para conservarlo): ")
     if precio != None and precio <= 0:
         imprimir_error("El precio debe ser mayor que cero.")
+        return
+    if titulo == None and genero == None and duracion == None and precio == None:
+        print("No se cambió ningún dato.")
         return
     peliculas.actualizar_pelicula(PELICULAS, id_pelicula, titulo, genero, duracion, precio)
     imprimir_exito(f"Película ID {id_pelicula} modificada.")
