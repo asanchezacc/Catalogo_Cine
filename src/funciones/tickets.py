@@ -28,14 +28,24 @@ def crear_ticket(cliente_id, pelicula_id, asiento, precio, empleado_id):
     (False, mensaje) si algún dato no es válido.
     """
 
-    if cliente_id <= 0 or pelicula_id <= 0 or empleado_id <= 0:
-        return False, "Los identificadores deben ser positivos"
+    if (type(cliente_id) != int or type(pelicula_id) != int
+            or type(empleado_id) != int or cliente_id <= 0
+            or pelicula_id <= 0 or empleado_id <= 0):
+        return False, "Los identificadores deben ser enteros positivos"
 
-    if precio <= 0:
+    if type(precio) not in (int, float) or precio <= 0:
         return False, "El precio debe ser mayor que cero"
 
     if type(asiento) != tuple or len(asiento) != 2:
         return False, "El asiento debe ser una tupla de dos elementos"
+    fila, columna = asiento
+    if (type(fila) != int or type(columna) != int
+            or fila < 0 or columna < 0):
+        return False, "Las coordenadas del asiento no son válidas"
+
+    for ticket in tickets_registrados:
+        if ticket["estado"] != "cancelado" and ticket["asiento"] == asiento:
+            return False, "El asiento ya está reservado en otro ticket"
 
     
     ultimo_id = 0
@@ -210,6 +220,7 @@ def cargar_tickets():
             cargados.append(ticket_cargado)
 
     except FileNotFoundError:
+        tickets_registrados.clear()
         return True, "Todavia no existe un archivo de tickets"
 
     except (OSError, ValueError, TypeError) as error:

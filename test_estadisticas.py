@@ -96,3 +96,14 @@ def test_ranking_cantidad_invalida():
 
     assert resultado == []
 
+
+
+def test_contar_por_pelicula_y_estado():
+    tickets = [
+        {"pelicula_id": 1, "estado": "cobrado"},
+        {"pelicula_id": 1, "estado": "cancelado"},
+        {"pelicula_id": 2, "estado": "cobrado"},
+    ]
+    assert estadisticas.contar_por_pelicula(tickets, 1) == 2
+    assert estadisticas.contar_por_pelicula(tickets, 1, "cobrado") == 1
+    assert estadisticas.contar_por_pelicula(tickets, 1, "pendiente") == 0

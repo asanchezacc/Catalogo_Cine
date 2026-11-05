@@ -29,7 +29,7 @@ Proyecto de la materia **Programación 1 - Algoritmos y Estructuras de Datos 1**
 ## **Tecnologías y Conceptos Aplicados**
 
 - **Python 3**
-- **Persistencia de datos** mediante archivos JSON (`json.load` y `json.dump`)
+- **Persistencia de datos** mediante JSON (`json.load` y `json.dump`) y TXT para usuarios
 - **Manejo de excepciones** (`try/except`, `raise`)
 - **Recursividad** aplicada en tres casos: listas, matrices y cadenas
 - **Expresiones regulares** para validaciones
@@ -62,3 +62,14 @@ python main.py
 ```bash
 pytest -v
 ```
+
+---
+
+## Credenciales iniciales
+
+En la primera ejecución se crea `src/datos/usuarios.txt` si todavía no existe.
+
+- **Administrador:** usuario `admin` / contraseña `admin123`
+- **Empleado:** usuario `empleado1` / contraseña `1234`
+
+Los usuarios que se den de alta y los cambios de contraseña se guardan en el archivo TXT. El archivo local de usuarios no se sube a GitHub.

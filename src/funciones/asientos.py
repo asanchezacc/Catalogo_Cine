@@ -72,10 +72,7 @@ def ocupar_asiento(sala, fila, columna):
     Si es inválido o ya está ocupado, devuelve False sin modificarlo.
     """
 
-    if not asiento_valido(sala, fila, columna):
-        return False
-
-    if sala[fila][columna] == ASIENTO_OCUPADO:
+    if obtener_estado_asiento(sala, fila, columna) != ASIENTO_LIBRE:
         return False
 
     sala[fila][columna] = ASIENTO_OCUPADO
@@ -91,10 +88,7 @@ def liberar_asiento(sala, fila, columna):
     Si es inválido o ya está libre, devuelve False sin modificarlo.
     """
 
-    if not asiento_valido(sala, fila, columna):
-        return False
-
-    if sala[fila][columna] == ASIENTO_LIBRE:
+    if obtener_estado_asiento(sala, fila, columna) != ASIENTO_OCUPADO:
         return False
 
     sala[fila][columna] = ASIENTO_LIBRE
