@@ -34,8 +34,12 @@ def total_recaudado(tickets):
     return reduce(lambda acumulado, t: acumulado + t["precio"], cobrados, 0)
 
 
-def contar_por_pelicula(tickets, id_pelicula):
-    return len(list(filter(lambda t: t["pelicula_id"] == id_pelicula, tickets)))
+def contar_por_pelicula(tickets, id_pelicula, estado=None):
+    """Cuenta los tickets de una película, opcionalmente por estado."""
+    return len(list(filter(
+        lambda t: t["pelicula_id"] == id_pelicula and (estado is None or t["estado"] == estado),
+        tickets
+    )))
 
 
 def resumen_estadisticas(tickets):
@@ -63,13 +67,7 @@ def peliculas_mas_y_menos_vendidas(peliculas, tickets):
     ventas = []
 
     for pelicula in peliculas:
-        cantidad = 0
-
-        for ticket in tickets:
-            if (ticket["pelicula_id"] == pelicula["id"]
-                    and ticket["estado"] == "cobrado"):
-                cantidad += 1
-
+        cantidad = contar_por_pelicula(tickets, pelicula["id"], "cobrado")
         ventas.append((pelicula["titulo"], cantidad))
 
     mas_vendida = max(ventas, key=lambda dato: dato[1])
@@ -151,13 +149,7 @@ def ranking_peliculas_mas_vendidas(peliculas, tickets, cantidad=3):
     ventas = []
 
     for pelicula in peliculas:
-        cobrados = 0
-
-        for ticket in tickets:
-            if (ticket["pelicula_id"] == pelicula["id"]
-                    and ticket["estado"] == "cobrado"):
-                cobrados += 1
-
+        cobrados = contar_por_pelicula(tickets, pelicula["id"], "cobrado")
         ventas.append((pelicula["titulo"], cobrados))
 
     # Ordenamos de mayor a menor cantidad de ventas

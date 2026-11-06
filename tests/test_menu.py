@@ -156,3 +156,14 @@ def test_titulo_repetido_con_titulo_largo():
     largo = "Una pelicula con un titulo larguisimo que supera los cincuenta caracteres"
     lista = [{"id": 1, "titulo": menu.recortar_titulo(largo)}]
     assert menu.titulo_repetido(largo, lista) is True
+
+
+def test_totales_catalogo_para_estadisticas():
+    from src.funciones import peliculas
+    catalogo = [
+        {"id": 1, "duracion": 90},
+        {"id": 2, "duracion": 120},
+    ]
+    assert peliculas.contar_peliculas(catalogo) == 2
+    assert peliculas.promedio_duracion(catalogo) == 105
+    assert peliculas.promedio_duracion([]) == 0

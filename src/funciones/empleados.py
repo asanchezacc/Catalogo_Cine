@@ -64,6 +64,10 @@ def dar_reserva(sala, cliente_id, pelicula_id, precio, fila, columna, empleado_i
     if clientes.buscar_cliente(cliente_id) is None:
         return False, "No existe un cliente con ese ID."
 
+    # La validación también se aplica si la función se llama sin pasar por el menú.
+    if cliente_id not in clientes.clientes_activos_conjunto():
+        return False, "Ese cliente está dado de baja."
+
     if not asientos.ocupar_asiento(sala, fila, columna):
         return False, "Ese asiento no existe o ya está ocupado."
 

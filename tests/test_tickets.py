@@ -153,3 +153,16 @@ def test_recaudacion_lista_vacia():
     total = tickets.sumar_recaudacion_recursiva([])
 
     assert total == 0
+
+
+def test_rechaza_asiento_duplicado_y_permite_reutilizar_cancelado():
+    ruta, anteriores = preparar_prueba()
+    try:
+        assert tickets.crear_ticket(1, 2, (0, 0), 2500, 1) == (True, 1)
+        assert tickets.crear_ticket(2, 2, (0, 0), 2500, 1)[0] is False
+        assert len(tickets.tickets_registrados) == 1
+        assert tickets.cancelar_ticket(1)[0] is True
+        assert tickets.crear_ticket(2, 2, (0, 0), 2500, 1) == (True, 2)
+        assert tickets.crear_ticket(3, 2, (-1, 0), 2500, 1)[0] is False
+    finally:
+        restaurar_prueba(ruta, anteriores)
