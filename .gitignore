@@ -3,6 +3,7 @@ __pycache__/
 *.pyo
 *.pyd
 .DS_Store
+.pytest_cache/
 
 # Datos locales de acceso (no subir contraseñas en texto plano)
 src/datos/usuarios.txt

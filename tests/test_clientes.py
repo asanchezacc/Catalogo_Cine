@@ -3,11 +3,19 @@ import json
 from src.modelos import clientes
 
 def setup_function():
-    """Se ejecuta antes de cada prueba."""
+    """Se ejecuta antes de cada prueba para limpiar los datos."""
     clientes.lista_clientes.clear()
     clientes.emails_activos.clear()
-    # Usamos un JSON temporal para que los tests NO pisen el archivo real del proyecto
+
+    # Usamos un JSON temporal para no pisar el archivo real del proyecto
     clientes.ARCHIVO_CLIENTES = "test_clientes_temporal.json"
+
+    # Vaciamos el archivo temporal
+    try:
+        with open(clientes.ARCHIVO_CLIENTES, "w", encoding="UTF-8") as archivo:
+            archivo.write("[]")
+    except OSError:
+        pass # Si falla, el alta_cliente se va a encargar de crearlo luego
 
 def test_alta_cliente_exitosa():
     resultado = clientes.alta_cliente("Test User", "test@mail.com", "12345678", False)
@@ -29,10 +37,11 @@ def test_slicing_listar_paginado():
     clientes.alta_cliente("Cliente A", "a@mail.com", "1122334455", False)
     clientes.alta_cliente("Cliente B", "b@mail.com", "1122334466", False)
     clientes.alta_cliente("Cliente C", "c@mail.com", "1122334477", False)
-    
+
     pagina_1 = clientes.listar_clientes_paginado(0, 2)
     assert len(pagina_1) == 2
     assert pagina_1[0]["nombre"] == "Cliente A"
+    assert pagina_1[1]["nombre"] == "Cliente B"
 
 
 def test_json_danado_no_reemplaza_clientes():
