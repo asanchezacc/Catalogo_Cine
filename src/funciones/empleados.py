@@ -1,4 +1,4 @@
-from src.modelos import clientes
+from src.modelos import clientes, usuarios
 from src.funciones import peliculas, asientos, tickets
 
 
@@ -41,9 +41,10 @@ def buscar_pelicula(catalogo, texto):
     return list(filter(lambda p: texto.lower() in p["titulo"].lower(), catalogo))
 
 
-# ------------------ Sala: matriz -> conjunto -> diccionario ------------------
+# ------------------ Sala: matriz -> conjunto de duplas ------------------
 
 def asientos_ocupados(sala):
+    """Recorre la matriz de la sala y devuelve un conjunto de duplas (fila, columna) ocupadas."""
     ocupados = set()
 
     for fila_idx in range(len(sala)):
@@ -52,24 +53,6 @@ def asientos_ocupados(sala):
                 ocupados.add((fila_idx, columna_idx))
 
     return ocupados
-
-
-def mapa_ocupacion(sala):
-    """asientos ocupados"""
-    ocupados = asientos_ocupados(sala)
-    mapa = {}
-
-    for fila_idx in range(len(sala)):
-        for columna_idx in range(len(sala[fila_idx])):
-            clave = (fila_idx, columna_idx)
-
-            if clave in ocupados:
-                mapa[clave] = "Ocupado"
-            else:
-                mapa[clave] = "Libre"
-
-    return mapa
-
 
 
 # ------------------ Reservas y tickets ------------------
@@ -101,7 +84,6 @@ def dar_reserva(sala, cliente_id, pelicula_id, precio, fila, columna, empleado_i
 def cancelar_reserva(sala, id_ticket):
     """
     Cancela un ticket pendiente y libera el asiento que tenía asignado.
-    
     """
     ticket = tickets.obtener_ticket(id_ticket)
     if ticket is None:
@@ -142,10 +124,19 @@ def obtener_datos_ticket(id_ticket, catalogo):
     }
 
 
-def ver_reservas(empleado_id=None):
+def ver_reservas():
+    """Devuelve todos los tickets registrados."""
+    return tickets.tickets_registrados
+
+
+def tickets_de_empleado(usuario):
     """
-    Devuelve los tickets registrados. .
+    El empleado (A), devuelve los tickets que reservó el cliente (B).
+    Devuelve (True, lista_de_tickets) o (False, mensaje) si el usuario no existe.
     """
-    if empleado_id is None:
-        return tickets.tickets_registrados
-    return list(filter(lambda t: t["empleado_id"] == empleado_id, tickets.tickets_registrados))
+    empleado = usuarios.buscar_usuario(usuario)
+    if empleado is None:
+        return False, "Ese usuario no existe."
+
+    reservados = list(filter(lambda t: t["empleado_id"] == empleado["id"], tickets.tickets_registrados))
+    return True, reservados
