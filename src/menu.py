@@ -10,11 +10,22 @@ PELICULAS = []
 
 
 def inicializar():
-    datos_iniciales.cargar_peliculas(PELICULAS)
-    # Primero se leen los clientes guardados en el JSON para no pisarlos
-    clientes.cargar_clientes_desde_json()
-    datos_iniciales.cargar_clientes()
-    datos_iniciales.cargar_usuarios()
+    if datos_iniciales.cargar_peliculas(PELICULAS) is None:
+        imprimir_error("No se pudieron cargar las películas. Revisá peliculas.json.")
+        return None
+    # Si el JSON está dañado, no se reemplaza con clientes de prueba.
+    estado_clientes = clientes.cargar_clientes_desde_json()
+    if estado_clientes is False:
+        return None
+    if estado_clientes is None:
+        cantidad = datos_iniciales.cargar_clientes()
+        if cantidad != len(datos_iniciales.CLIENTES_INICIALES):
+            imprimir_error("No se pudieron crear los clientes iniciales.")
+            return None
+    exito, mensaje = datos_iniciales.inicializar_usuarios()
+    if not exito:
+        imprimir_error(mensaje)
+        return None
 
     sala = asientos.crear_sala(
         datos_iniciales.SALA_FILAS,
@@ -25,9 +36,11 @@ def inicializar():
     exito, mensaje = tickets.cargar_tickets()
     if not exito:
         imprimir_error(mensaje)
+        return None
     exito, mensaje = asientos.reconstruir_ocupacion(sala, tickets.tickets_registrados)
     if not exito:
         imprimir_error(mensaje)
+        return None
 
     return sala
 
@@ -78,8 +91,11 @@ def accion_ver_catalogo():
 
 
 def accion_ver_clientes():
-    # Usa la tabla de clientes.py en lugar de armar el print a mano
+    # La tabla y el conteo muestran únicamente los clientes activos.
     clientes.mostrar_clientes()
+    activos = empleados.listar_clientes()
+    cantidad = clientes.contar_clientes_recursivo(activos)
+    print(f"Clientes activos: {cantidad}")
 
 
 def accion_dar_alta_cliente():
@@ -170,7 +186,9 @@ def accion_ver_estadisticas():
     print(f"Tickets cobrados: {resumen['cantidad_cobrados']}")
     print(f"Tickets cancelados: {resumen['cantidad_cancelados']}")
     print(f"Porcentaje cobrados: {resumen['porcentaje_cobrados']:.1f}%")
-    print(f"Total recaudado: ${resumen['total_recaudado']:.2f}")
+    # El total visible se calcula recursivamente con los tickets cobrados.
+    total_recursivo = tickets.sumar_recaudacion_recursiva(lista_tickets)
+    print(f"Total recaudado: ${total_recursivo:.2f}")
 
     imprimir_encabezado("Ventas por película")
     if resumen["cantidad_cobrados"] == 0:
@@ -194,6 +212,10 @@ def accion_ver_estadisticas():
             print("Sin ventas: ninguna")
         else:
             print(f"Sin ventas: {', '.join(titulos_de_ids(sin_ventas, PELICULAS))}")
+
+    imprimir_encabezado("Datos del catálogo")
+    print(f"Películas en cartelera: {peliculas.contar_peliculas(PELICULAS)}")
+    print(f"Duración promedio: {peliculas.promedio_duracion(PELICULAS):.1f} minutos")
 
     imprimir_encabezado("Precio promedio por género")
     promedios = estadisticas.promedio_precio_por_genero(PELICULAS)
@@ -623,6 +645,8 @@ def menu_empleado(usuario_actual, sala):
 def main():
     imprimir_encabezado("Sistema de cine")
     sala = inicializar()
+    if sala is None:
+        return
     usuario, rol = usuarios.iniciar_sesion()
     if usuario is None:
         return

@@ -173,48 +173,6 @@ def mostrar_sala(sala, titulo="SALA"):
     print(f"  {VERDE}·{RESET} Libre    {ROJO}X{RESET} Ocupado")
 
 
-def mostrar_sala_con_tickets(sala, tickets, titulo="SALA - OCUPACION"):
-    """Igual que mostrar_sala, pero marca cada asiento ocupado con el ID del cliente que hizo la reserva."""
-    if not sala or not sala[0]:
-        imprimir_advertencia("La sala está vacía.")
-        return
-
-    # Mapa {(fila, columna): cliente_id}
-    reservados = {}
-    for t in tickets:
-        if t["estado"] in ("pendiente", "cobrado"):
-            reservados[t["asiento"]] = t["cliente_id"]
-
-    columnas = len(sala[0])
-    ancho_total = 5 + columnas * 3
-
-    imprimir_encabezado(titulo)
-    print(f"{CYAN}{BOLD}{'PANTALLA'.center(ancho_total)}{RESET}")
-    print(f"{CYAN}{'-' * ancho_total}{RESET}")
-
-    print(f"{CYAN}{BOLD}{'':5}{RESET}", end="")
-    for j in range(columnas):
-        print(f"{CYAN}{BOLD}{j + 1:>3}{RESET}", end="")
-    print()
-
-    for i, fila in enumerate(sala):
-        letra = chr(ord('A') + i)
-        print(f"{CYAN}{BOLD}{letra:<5}{RESET}", end="")
-        for j, valor in enumerate(fila):
-            coord = (i, j)
-            if valor == 0:
-                print(f"{VERDE}  ·{RESET}", end="")
-            elif coord in reservados:
-                cliente_id = reservados[coord]
-                print(f"{AMARILLO}{cliente_id:>3}{RESET}", end="")
-            else:
-                print(f"{ROJO}  X{RESET}", end="")
-        print()
-
-    print()
-    print(f"    {VERDE}·{RESET} Libre   {ROJO}X{RESET}  Ocupado  {AMARILLO}N{RESET} Cliente N")
-
-
 # BLOQUE DE EJECUCION
 if __name__ == "__main__":
     peliculas = [

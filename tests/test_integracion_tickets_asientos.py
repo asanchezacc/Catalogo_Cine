@@ -64,7 +64,11 @@ def test_reinicio_detecta_duplicados():
     ruta, anteriores = preparar_prueba()
     try:
         assert tickets.crear_ticket(1, 2, (0, 0), 2500, 1)[0] is True
-        assert tickets.crear_ticket(2, 2, (0, 0), 2500, 1)[0] is True
+        # Simulamos un archivo manipulado con dos reservas del mismo asiento.
+        ticket_duplicado = tickets.obtener_ticket(1).copy()
+        ticket_duplicado["id"] = 2
+        tickets.tickets_registrados.append(ticket_duplicado)
+        assert tickets.guardar_tickets()[0] is True
 
         tickets.tickets_registrados.clear()
         sala = asientos.crear_sala(2, 3)

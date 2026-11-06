@@ -3,8 +3,7 @@ Datos iniciales del sistema.
 Carga de clientes, peliculas y usuarios de prueba al arrancar el programa.
 """
 from src.modelos import clientes, usuarios
-from src.funciones import peliculas, asientos
-from src.vista import imprimir_mensaje, imprimir_encabezado, CYAN
+from src.funciones import peliculas
 
 CLIENTES_INICIALES = [
     ("Lary Choi", "larychoi@email.com", "1122334455"),
@@ -38,16 +37,20 @@ def cargar_clientes():
 
 def cargar_peliculas(lista_peliculas):
     """Da de alta las peliculas de prueba en la lista recibida."""
-    if peliculas.cargar_peliculas_desde_json(lista_peliculas):
+    estado = peliculas.cargar_peliculas_desde_json(lista_peliculas)
+    if estado is True:
         return len(lista_peliculas)
+    if estado is False:
+        return None
 
+    lista_peliculas.clear()
     cantidad = 0
     id_pelicula = 1
 
     for datos in PELICULAS_INICIALES:
         titulo, genero, duracion, precio = datos
 
-        if peliculas.agregar_pelicula(
+        if not peliculas.agregar_pelicula(
             lista_peliculas,
             id_pelicula,
             titulo,
@@ -55,45 +58,30 @@ def cargar_peliculas(lista_peliculas):
             duracion,
             precio,
         ):
-            cantidad += 1
-
+            return None
+        cantidad += 1
         id_pelicula += 1
 
-    peliculas.guardar_peliculas(lista_peliculas)
     return cantidad
 
 def cargar_usuarios():
     """Da de alta los usuarios de prueba"""
     cantidad = 0
     for nombre, usuario, password, rol in USUARIOS_INICIALES:
-        ok, _ = usuarios.alta_usuario(nombre, usuario, password, rol)
+        ok, _ = usuarios.alta_usuario(nombre, usuario, password, rol, persistir=False)
         if ok:
             cantidad += 1
     return cantidad
 
-def cargar_datos(lista_peliculas):
-    """Carga todos los datos iniciales y crea la sala, usando JSON si ya existen."""
-    imprimir_encabezado("Cargando datos")
+def inicializar_usuarios():
+    """Recupera los usuarios del TXT o crea los predeterminados la primera vez."""
+    exito, existe_archivo, mensaje = usuarios.cargar_usuarios_desde_txt()
+    if not exito:
+        return False, mensaje
 
-    # Intentamos cargar los clientes del JSON. Si el archivo no existe, 
-    # el try/except interno de clientes.py lo maneja y devuelve una lista vacía.
-    clientes.cargar_clientes_desde_json()
-    
-    if len(clientes.lista_clientes) == 0:
-        # Es la primera vez (no había JSON o estaba vacío)
-        n_clientes = cargar_clientes()
-        clientes.guardar_clientes() # Guarda el archivo JSON
-        imprimir_mensaje(f"Clientes iniciales creados: {n_clientes}", CYAN)
-    else:
-        imprimir_mensaje(f"Clientes cargados desde JSON: {len(clientes.lista_clientes)}", CYAN)
+    if existe_archivo:
+        return True, mensaje
 
-    n_peliculas = cargar_peliculas(lista_peliculas)
-    imprimir_mensaje(f"Peliculas cargadas: {n_peliculas}", CYAN)
-
-    n_usuarios = cargar_usuarios()
-    imprimir_mensaje(f"Usuarios cargados: {n_usuarios}", CYAN)
-
-    sala = asientos.crear_sala(SALA_FILAS, SALA_COLUMNAS)
-    imprimir_mensaje(f"Sala creada: {SALA_FILAS}x{SALA_COLUMNAS}", CYAN)
-
-    return sala
+    usuarios.usuarios.clear()
+    cargar_usuarios()
+    return usuarios.guardar_usuarios()

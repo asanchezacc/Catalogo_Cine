@@ -3,7 +3,6 @@ CRUD de clientes.
 Con JSON y recursividad.
 """
 
-import re
 import json
 from src.vista import VERDE, imprimir_advertencia, imprimir_error, imprimir_exito, imprimir_mensaje, mostrar_tabla
 
@@ -15,38 +14,66 @@ ARCHIVO_CLIENTES = "src/datos/clientes.json"
 
 
 def guardar_clientes():
-    """Guarda la lista de clientes en el archivo JSON."""
+    """Guarda la lista de clientes en JSON y devuelve True si pudo hacerlo."""
     try:
-        with open(ARCHIVO_CLIENTES, 'w', encoding="UTF-8") as archivo:
-            # ensure_ascii=False para que guarde tildes y ñ correctamente
+        with open(ARCHIVO_CLIENTES, "w", encoding="utf-8") as archivo:
             json.dump(lista_clientes, archivo, ensure_ascii=False, indent=4)
-    except Exception as e:
-        imprimir_error(f"No se pudo guardar el archivo de clientes: {e}")
+        return True
+    except (OSError, TypeError, ValueError) as error:
+        imprimir_error(f"No se pudo guardar el archivo de clientes: {error}")
+        return False
 
 
 def cargar_clientes_desde_json():
-    """Carga los clientes desde el archivo JSON al arrancar el sistema."""
-    global lista_clientes, emails_activos
+    """Devuelve True si carga, None si no existe y False si hay errores."""
+    cargados = []
+    ids = set()
+    emails = set()
+
     try:
-        with open(ARCHIVO_CLIENTES, 'r', encoding="UTF-8") as archivo:
-            lista_clientes = json.load(archivo)
-            # Reconstruimos el conjunto de emails para validar duplicados
-            emails_activos = {c["email"] for c in lista_clientes}
+        with open(ARCHIVO_CLIENTES, "r", encoding="utf-8") as archivo:
+            datos = json.load(archivo)
+
+        if type(datos) != list:
+            raise ValueError("El archivo debe contener una lista de clientes.")
+
+        for cliente in datos:
+            if type(cliente) != dict:
+                raise ValueError("Hay un cliente con un formato incorrecto.")
+
+            for campo in ("id", "nombre", "email", "telefono", "estado"):
+                if campo not in cliente:
+                    raise ValueError(f"Falta el campo {campo} en un cliente.")
+
+            id_cliente = cliente["id"]
+            email = cliente["email"]
+            if type(email) != str:
+                raise ValueError("Hay un email con un formato incorrecto.")
+            email_normalizado = email.strip().lower()
+            if type(id_cliente) != int or id_cliente <= 0 or id_cliente in ids:
+                raise ValueError("Hay un ID de cliente inválido o repetido.")
+            if type(cliente["nombre"]) != str or not cliente["nombre"].strip():
+                raise ValueError("Hay un nombre de cliente inválido.")
+            if email_normalizado in emails or not validar_email(email_normalizado)[0]:
+                raise ValueError("Hay un email inválido o repetido.")
+            if type(cliente["telefono"]) != str or type(cliente["estado"]) != bool:
+                raise ValueError("Hay datos de un cliente con un formato incorrecto.")
+
+            cargados.append(cliente)
+            ids.add(id_cliente)
+            emails.add(email_normalizado)
+
     except FileNotFoundError:
-        # Si el archivo no existe, arranca con listas vacias
-        lista_clientes = []
-        emails_activos = set()
+        lista_clientes.clear()
+        emails_activos.clear()
+        return None
+    except (OSError, ValueError, TypeError, UnicodeError) as error:
+        imprimir_error(f"No se pudo cargar el archivo de clientes: {error}")
         return False
-    except OSError as error:
-        imprimir_error(f"No se pudo leer el archivo de clientes: {error}")
-        lista_clientes = []
-        emails_activos = set()
-        return False
-    except json.JSONDecodeError:
-        imprimir_error("El archivo de clientes esta dañado o mal formateado.")
-        lista_clientes = []
-        emails_activos = set()
-        return False
+
+    lista_clientes[:] = cargados
+    emails_activos.clear()
+    emails_activos.update(emails)
     return True
 
 
@@ -84,7 +111,12 @@ def alta_cliente(nombre, email, telefono, mostrar_mensajes=True):
             imprimir_error("El nombre no puede estar vacio")
         return False
 
-    """Validaciones de email usando el modulo centralizado"""
+    # Normalizar el email para detectar duplicados con distintas mayúsculas.
+    if type(email) != str:
+        if mostrar_mensajes:
+            imprimir_error("El email debe ser texto")
+        return False
+    email = email.strip().lower()
     es_valido, mensaje = validar_email(email)
     if not es_valido:
         if mostrar_mensajes:
@@ -96,14 +128,17 @@ def alta_cliente(nombre, email, telefono, mostrar_mensajes=True):
             imprimir_error("Este email ya esta registrado")
         return False
 
-    """Validacion de telefono: si es que falla, se advierte pero no se rechaza"""
+    # El teléfono debe ser válido antes de registrar al cliente.
     es_valido_tel, mensaje_tel = validar_telefono(telefono)
-    if not es_valido_tel and mostrar_mensajes:
-        imprimir_advertencia(mensaje_tel)
+    if not es_valido_tel:
+        if mostrar_mensajes:
+            imprimir_error(mensaje_tel)
+        return False
 
-
-
-    nuevo_id = len(lista_clientes) + 1
+    nuevo_id = 1
+    for registrado in lista_clientes:
+        if registrado["id"] >= nuevo_id:
+            nuevo_id = registrado["id"] + 1
 
     cliente = {
         "id": nuevo_id,
@@ -115,9 +150,11 @@ def alta_cliente(nombre, email, telefono, mostrar_mensajes=True):
 
     lista_clientes.append(cliente)
     emails_activos.add(email)
-    
-    # Guardamos en el archivo JSON
-    guardar_clientes()
+
+    if not guardar_clientes():
+        lista_clientes.pop()
+        emails_activos.remove(email)
+        return False
 
     if mostrar_mensajes:
         imprimir_exito(f"Cliente '{nombre}' dado de alta con ID {cliente['id']}")
@@ -136,44 +173,65 @@ def baja_cliente(id_cliente):
         return True
 
     cliente["estado"] = False
-    guardar_clientes() # Guardamos en JSON
+    if not guardar_clientes():
+        cliente["estado"] = True
+        return False
     imprimir_exito(f"Cliente ID {id_cliente} dado de baja")
     return True
 
 
 def modificar_cliente(id_cliente, nombre=None, email=None, telefono=None):
-    """Modifica los datos de un cliente y guarda el cambio en JSON."""
+    """Valida antes de modificar y revierte los cambios si falla el guardado."""
     cliente = buscar_cliente(id_cliente)
     if cliente is None:
         imprimir_error(f"No existe cliente con ID {id_cliente}")
         return False
 
     if email is not None:
+        if type(email) != str:
+            imprimir_error("El email debe ser texto")
+            return False
+        email = email.strip().lower()
         es_valido, mensaje = validar_email(email)
         if not es_valido:
             imprimir_error(mensaje)
             return False
-        if email != cliente["email"] and email in emails_activos:
+        email_anterior = cliente["email"].strip().lower()
+        if email != email_anterior and email in emails_activos:
             imprimir_error("El email ya esta registrado por otro cliente")
             return False
-        if email != cliente["email"]:
-            emails_activos.remove(cliente["email"])
-            emails_activos.add(email)
-        cliente["email"] = email
 
-    if nombre is not None:
-        if not nombre.strip():
-            imprimir_error("El nombre no puede estar vacio")
-            return False
-        cliente["nombre"] = nombre.strip()
+    if nombre is not None and not nombre.strip():
+        imprimir_error("El nombre no puede estar vacio")
+        return False
 
     if telefono is not None:
         es_valido, mensaje = validar_telefono(telefono)
         if not es_valido:
-            imprimir_advertencia(mensaje)
+            imprimir_error(mensaje)
+            return False
+
+    datos_anteriores = cliente.copy()
+    emails_anteriores = emails_activos.copy()
+
+    if email is not None:
+        email_anterior = cliente["email"].strip().lower()
+        if email != email_anterior:
+            emails_activos.remove(email_anterior)
+            emails_activos.add(email)
+        cliente["email"] = email
+    if nombre is not None:
+        cliente["nombre"] = nombre.strip()
+    if telefono is not None:
         cliente["telefono"] = telefono
 
-    guardar_clientes() # Guardamos en JSON
+    if not guardar_clientes():
+        cliente.clear()
+        cliente.update(datos_anteriores)
+        emails_activos.clear()
+        emails_activos.update(emails_anteriores)
+        return False
+
     imprimir_exito(f"Cliente ID {id_cliente} modificado correctamente")
     return True
 

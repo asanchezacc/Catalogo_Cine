@@ -12,11 +12,14 @@ def validar_email(email):
 
 
 def validar_telefono(telefono, longitud_minima=8, longitud_maxima=15):
+    if type(telefono) != str:
+        return False, "El teléfono debe ser texto."
+
+    telefono = telefono.strip()
+    if not re.match(r"^\+?\d+(?:[\s-]+\d+)*$", telefono):
+        return False, "El teléfono solo puede tener números, espacios, guiones y un '+' al comienzo."
+
     solo_numeros = re.sub(r"[\s\-+]", "", telefono)
-
-    if not re.match(r"^\d+$", solo_numeros):
-        return False, "El teléfono solo puede tener números (espacios, guiones o un '+' inicial están permitidos)."
-
     if len(solo_numeros) < longitud_minima or len(solo_numeros) > longitud_maxima:
         return False, f"El teléfono debe tener entre {longitud_minima} y {longitud_maxima} dígitos."
 

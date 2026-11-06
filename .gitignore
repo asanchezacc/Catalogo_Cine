@@ -4,6 +4,16 @@ __pycache__/
 *.pyd
 .DS_Store
 .pytest_cache/
-test_clientes_temporal.json
-tickets_integracion_pytest.json
+
+# Datos locales de acceso (no subir contraseñas en texto plano)
+src/datos/usuarios.txt
+usuarios_pruebas_pytest.txt
+
+# Archivo temporal de pruebas del catálogo
+peliculas_pruebas_pytest.json
+
+# Archivos generados al ejecutar el programa o pytest
+src/datos/tickets.json
 tickets_pruebas_pytest.json
+tickets_integracion_pytest.json
+test_clientes_temporal.json
