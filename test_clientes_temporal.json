@@ -1,0 +1,23 @@
+[
+    {
+        "id": 1,
+        "nombre": "Cliente A",
+        "email": "a@mail.com",
+        "telefono": "111",
+        "estado": true
+    },
+    {
+        "id": 2,
+        "nombre": "Cliente B",
+        "email": "b@mail.com",
+        "telefono": "222",
+        "estado": true
+    },
+    {
+        "id": 3,
+        "nombre": "Cliente C",
+        "email": "c@mail.com",
+        "telefono": "333",
+        "estado": true
+    }
+]
