@@ -627,7 +627,8 @@ def menu_empleado(usuario_actual, sala):
         print("13. Ver todos los clientes (incluye dados de baja)")
         print("14. Ver tickets de un cliente")
         print("15. Ver tickets de una película")
-        print("16. Salir")
+        print("16. Ver mis tickets")
+        print("17. Salir")
 
         opcion = pedir_entero("Elegí una opción: ")
         if opcion == 1: accion_ver_catalogo()
