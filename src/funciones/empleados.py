@@ -54,6 +54,18 @@ def asientos_ocupados(sala):
 
     return ocupados
 
+def mapa_ocupacion(sala):
+    """Convierte la matriz en un diccionario {(fila, columna): "Libre"/"Ocupado"}."""
+    ocupados = asientos_ocupados(sala)
+    mapa = {}
+    for fila_idx in range(len(sala)):
+        for columna_idx in range(len(sala[fila_idx])):
+            clave = (fila_idx, columna_idx)
+            if clave in ocupados:
+                mapa[clave] = "Ocupado"
+            else:
+                mapa[clave] = "Libre"
+    return mapa
 
 # ------------------ Reservas y tickets ------------------
 
